@@ -1,0 +1,68 @@
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../config/env';
+import { AppError } from './errorHandler';
+import prisma from '../config/database';
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: number;
+    email: string;
+    rol: string;
+  };
+}
+
+export const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AppError('No token provided', 401);
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, config.jwt.secret) as {
+      id: number;
+      email: string;
+      rol: string;
+    };
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, rol: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 401);
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      next(new AppError('Invalid token', 401));
+    } else {
+      next(error);
+    }
+  }
+};
+
+export const authorize = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AppError('Authentication required', 401));
+    }
+
+    if (!roles.includes(req.user.rol)) {
+      return next(new AppError('Insufficient permissions', 403));
+    }
+
+    next();
+  };
+};
+
+

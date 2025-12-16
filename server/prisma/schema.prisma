@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  cliente
+  empresa
+  admin
+}
+
+enum ReservaEstado {
+  pendiente
+  confirmada
+  completada
+  cancelada
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  nombre      String
+  apellido    String
+  email       String    @unique
+  password    String
+  telefono    String?
+  ciudad      String?
+  avatar      String?
+  rol         UserRole  @default(cliente)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  negocios    Negocio[]
+  reservas    Reserva[]
+  chatsCliente Chat[]   @relation("ChatCliente")
+  chatsEmpresa Chat[]   @relation("ChatEmpresa")
+  favoritos   Favorito[]
+  resenas     Resena[]
+  mensajes    Mensaje[] @relation("MensajeUsuario")
+
+  @@map("users")
+}
+
+model Categoria {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  icono       String
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  negocios    Negocio[]
+
+  @@map("categorias")
+}
+
+model Ciudad {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  createdAt   DateTime  @default(now())
+
+  negocios    Negocio[]
+
+  @@map("ciudades")
+}
+
+model Negocio {
+  id            Int       @id @default(autoincrement())
+  nombre        String
+  direccion     String
+  telefono      String
+  email         String
+  descripcion   String?   @db.Text
+  foto          String?
+  categoriaId   Int
+  ciudadId      Int
+  propietarioId Int
+  calificacion  Float     @default(0)
+  totalResenas  Int       @default(0)
+  precioPromedio Float    @default(0)
+  horarios      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  categoria     Categoria  @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  ciudad         Ciudad     @relation(fields: [ciudadId], references: [id], onDelete: Cascade)
+  propietario    User       @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
+  servicios      Servicio[]
+  reservas        Reserva[]
+  chats           Chat[]
+  fotos           NegocioFoto[]
+  resenas         Resena[]
+  favoritos       Favorito[]
+
+  @@map("negocios")
+}
+
+model NegocioFoto {
+  id        Int      @id @default(autoincrement())
+  negocioId Int
+  url       String
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  negocio   Negocio  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@map("negocio_fotos")
+}
+
+model Servicio {
+  id          Int      @id @default(autoincrement())
+  negocioId   Int
+  nombre      String
+  descripcion String?  @db.Text
+  precio      Float
+  duracion    Int
+  categoria   String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  negocio     Negocio  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  reservas    Reserva[]
+
+  @@map("servicios")
+}
+
+model Reserva {
+  id          Int           @id @default(autoincrement())
+  clienteId   Int
+  negocioId   Int
+  servicioId  Int
+  fecha       DateTime
+  hora        String
+  estado      ReservaEstado @default(pendiente)
+  precioTotal Float
+  notas       String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  cliente     User      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  negocio     Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  servicio    Servicio  @relation(fields: [servicioId], references: [id], onDelete: Restrict)
+
+  @@map("reservas")
+}
+
+model Chat {
+  id              Int       @id @default(autoincrement())
+  clienteId       Int
+  empresaId       Int
+  negocioId       Int
+  noLeidosCliente Int       @default(0)
+  noLeidosEmpresa Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  cliente         User      @relation("ChatCliente", fields: [clienteId], references: [id], onDelete: Cascade)
+  empresa         User      @relation("ChatEmpresa", fields: [empresaId], references: [id], onDelete: Cascade)
+  negocio         Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  mensajes        Mensaje[]
+
+  @@unique([clienteId, empresaId, negocioId])
+  @@map("chats")
+}
+
+model Mensaje {
+  id        Int       @id @default(autoincrement())
+  chatId    Int
+  remitente String
+  texto     String    @db.Text
+  leido     Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  usuarioId Int?
+
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  usuario   User?     @relation("MensajeUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("mensajes")
+}
+
+model Resena {
+  id          Int      @id @default(autoincrement())
+  clienteId   Int
+  negocioId   Int
+  reservaId   Int?
+  calificacion Int
+  comentario  String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cliente     User     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  negocio     Negocio  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([clienteId, negocioId, reservaId])
+  @@map("resenas")
+}
+
+model Favorito {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  negocioId Int
+  createdAt DateTime @default(now())
+
+  cliente   User     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  negocio   Negocio  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([clienteId, negocioId])
+  @@map("favoritos")
+}
+
+
