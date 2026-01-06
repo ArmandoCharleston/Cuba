@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, User } from "lucide-react";
-import { ciudadesMock } from "@/data/ciudadesMock";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 const RegistroCliente = () => {
-  const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -20,16 +21,48 @@ const RegistroCliente = () => {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingCiudades, setLoadingCiudades] = useState(true);
+
+  useEffect(() => {
+    const fetchCiudades = async () => {
+      try {
+        const response = await api.ciudades.getAll();
+        setCiudades(response.data || []);
+      } catch (error) {
+        console.error('Error fetching ciudades:', error);
+        toast.error("Error al cargar ciudades");
+      } finally {
+        setLoadingCiudades(false);
+      }
+    };
+    fetchCiudades();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    toast.success("Cuenta creada exitosamente!");
-    setTimeout(() => {
-      navigate("/cliente");
-    }, 1000);
+    try {
+      setLoading(true);
+      await register({
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        email: formData.email,
+        telefono: formData.telefono,
+        ciudad: formData.ciudad,
+        password: formData.password,
+        rol: "cliente",
+      });
+      toast.success("Cuenta creada exitosamente!");
+    } catch (error: any) {
+      toast.error(error.message || "Error al crear la cuenta");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -115,10 +148,11 @@ const RegistroCliente = () => {
                     value={formData.ciudad}
                     onChange={handleChange}
                     required
+                    disabled={loadingCiudades}
                   >
-                    <option value="">Selecciona</option>
-                    {ciudadesMock.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.id}>
+                    <option value="">{loadingCiudades ? "Cargando..." : "Selecciona"}</option>
+                    {ciudades.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.nombre}>
                         {ciudad.nombre}
                       </option>
                     ))}
@@ -162,7 +196,7 @@ const RegistroCliente = () => {
               </div>
 
               <Button type="submit" className="w-full" size="lg">
-                Crear Cuenta
+                {loading ? "Creando..." : "Crear Cuenta"}
               </Button>
             </form>
 

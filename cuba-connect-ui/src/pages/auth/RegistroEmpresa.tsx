@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, Upload } from "lucide-react";
-import { ciudadesMock } from "@/data/ciudadesMock";
-import { categoriasMock } from "@/data/categoriasMock";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 const RegistroEmpresa = () => {
-  const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     nombreNegocio: "",
     nombreContacto: "",
@@ -24,16 +24,55 @@ const RegistroEmpresa = () => {
     confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [ciudadesRes, categoriasRes] = await Promise.all([
+          api.ciudades.getAll(),
+          api.categorias.getAll(),
+        ]);
+        setCiudades(ciudadesRes.data || []);
+        setCategorias(categoriasRes.data || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error("Error al cargar datos");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    toast.success("Negocio registrado exitosamente!");
-    setTimeout(() => {
-      navigate("/empresa");
-    }, 1000);
+    try {
+      setLoading(true);
+      await register({
+        nombre: formData.nombreContacto,
+        apellido: formData.apellidoContacto,
+        email: formData.email,
+        telefono: formData.telefono,
+        ciudad: formData.ciudad,
+        password: formData.password,
+        rol: "empresa",
+      });
+      toast.success("Cuenta de empresa creada exitosamente!");
+      // Nota: La creación detallada del negocio (nombreNegocio, categoría, etc.)
+      // se puede manejar en el panel de empresa con formularios adicionales.
+    } catch (error: any) {
+      toast.error(error.message || "Error al registrar la empresa");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -83,9 +122,10 @@ const RegistroEmpresa = () => {
                         value={formData.categoria}
                         onChange={handleChange}
                         required
+                        disabled={loadingData}
                       >
-                        <option value="">Selecciona</option>
-                        {categoriasMock.map((cat) => (
+                        <option value="">{loadingData ? "Cargando..." : "Selecciona"}</option>
+                        {categorias.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.nombre}
                           </option>
@@ -102,10 +142,11 @@ const RegistroEmpresa = () => {
                         value={formData.ciudad}
                         onChange={handleChange}
                         required
+                        disabled={loadingData}
                       >
-                        <option value="">Selecciona</option>
-                        {ciudadesMock.map((ciudad) => (
-                          <option key={ciudad.id} value={ciudad.id}>
+                        <option value="">{loadingData ? "Cargando..." : "Selecciona"}</option>
+                        {ciudades.map((ciudad) => (
+                          <option key={ciudad.id} value={ciudad.nombre}>
                             {ciudad.nombre}
                           </option>
                         ))}
@@ -230,7 +271,7 @@ const RegistroEmpresa = () => {
               </div>
 
               <Button type="submit" className="w-full" size="lg">
-                Registrar Negocio
+                {loading ? "Registrando..." : "Registrar Negocio"}
               </Button>
             </form>
 

@@ -1,25 +1,76 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Star, SlidersHorizontal } from "lucide-react";
-import { negociosMock } from "@/data/negociosMock";
-import { ciudadesMock } from "@/data/ciudadesMock";
-import { categoriasMock } from "@/data/categoriasMock";
+import { api } from "@/lib/api";
 
 const Negocios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [negocios, setNegocios] = useState<any[]>([]);
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredNegocios = negociosMock.filter((negocio) => {
-    const matchesSearch =
-      negocio.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      negocio.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCity = !selectedCity || negocio.ciudadId === selectedCity;
-    const matchesCategory = !selectedCategory || negocio.categoriaId === selectedCategory;
-    return matchesSearch && matchesCity && matchesCategory;
+  // Load ciudades and categorias only once
+  useEffect(() => {
+    const fetchStaticData = async () => {
+      try {
+        const [ciudadesRes, categoriasRes] = await Promise.all([
+          api.ciudades.getAll(),
+          api.categorias.getAll(),
+        ]);
+        setCiudades(ciudadesRes.data || []);
+        setCategorias(categoriasRes.data || []);
+      } catch (err: any) {
+        console.error('Error fetching static data:', err);
+      }
+    };
+
+    fetchStaticData();
+  }, []);
+
+  // Fetch negocios with debounce for search
+  useEffect(() => {
+    const fetchNegocios = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const negociosRes = await api.negocios.getAll({
+          categoriaId: selectedCategory || undefined,
+          ciudadId: selectedCity || undefined,
+          search: searchTerm || undefined,
+        });
+        setNegocios(negociosRes.data || []);
+      } catch (err: any) {
+        setError(err.message || "Error al cargar negocios");
+        console.error('Error fetching negocios:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce search term
+    const timeoutId = setTimeout(() => {
+      fetchNegocios();
+    }, searchTerm ? 500 : 0); // 500ms delay for search, immediate for filters
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedCategory, selectedCity, searchTerm]);
+
+  // Filtering is now done on the backend, but we can do client-side filtering for search
+  const filteredNegocios = negocios.filter((negocio) => {
+    if (searchTerm) {
+      const matchesSearch =
+        negocio.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        negocio.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    }
+    return true;
   });
 
   return (
@@ -55,7 +106,7 @@ const Negocios = () => {
                   onChange={(e) => setSelectedCity(e.target.value)}
                 >
                   <option value="">Todas las ciudades</option>
-                  {ciudadesMock.map((ciudad) => (
+                  {ciudades.map((ciudad) => (
                     <option key={ciudad.id} value={ciudad.id}>
                       {ciudad.nombre}
                     </option>
@@ -70,7 +121,7 @@ const Negocios = () => {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
                   <option value="">Todas las categorías</option>
-                  {categoriasMock.map((cat) => (
+                  {categorias.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.nombre}
                     </option>
@@ -82,6 +133,13 @@ const Negocios = () => {
         </Card>
 
         {/* Results */}
+        {loading && (
+          <div className="mb-4 text-muted-foreground">Cargando negocios...</div>
+        )}
+        {error && (
+          <div className="mb-4 text-sm text-red-500">Error: {error}</div>
+        )}
+
         <div className="mb-4 flex items-center justify-between">
           <p className="text-muted-foreground">
             {filteredNegocios.length} negocio{filteredNegocios.length !== 1 ? "s" : ""} encontrado
@@ -91,18 +149,27 @@ const Negocios = () => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredNegocios.map((negocio) => {
-            const ciudad = ciudadesMock.find((c) => c.id === negocio.ciudadId);
-            const categoria = categoriasMock.find((c) => c.id === negocio.categoriaId);
+            const ciudad = negocio.ciudad || ciudades.find((c) => c.id === negocio.ciudadId);
+            const categoria = negocio.categoria || categorias.find((c) => c.id === negocio.categoriaId);
+            const fotoUrl = negocio.foto || (negocio.fotos && negocio.fotos.length > 0 
+              ? (typeof negocio.fotos[0] === 'string' ? negocio.fotos[0] : negocio.fotos[0].url)
+              : null);
 
             return (
               <Link key={negocio.id} to={`/negocios/${negocio.id}`}>
                 <Card className="overflow-hidden transition-all hover:shadow-medium hover:-translate-y-1">
                   <div className="aspect-video overflow-hidden">
-                    <img
-                      src={negocio.foto}
-                      alt={negocio.nombre}
-                      className="h-full w-full object-cover transition-transform hover:scale-105"
-                    />
+                    {fotoUrl ? (
+                      <img
+                        src={fotoUrl}
+                        alt={negocio.nombre}
+                        className="h-full w-full object-cover transition-transform hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-muted">
+                        <span className="text-muted-foreground">Sin imagen</span>
+                      </div>
+                    )}
                   </div>
                   <CardContent className="p-5">
                     <div className="mb-2 flex items-start justify-between">
@@ -111,9 +178,9 @@ const Negocios = () => {
 
                     <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">
                       <MapPin size={14} />
-                      <span>{ciudad?.nombre}</span>
+                      <span>{ciudad?.nombre || 'Ciudad no especificada'}</span>
                       <span>•</span>
-                      <span>{categoria?.nombre}</span>
+                      <span>{categoria?.nombre || 'Sin categoría'}</span>
                     </div>
 
                     <p className="mb-4 text-sm text-muted-foreground line-clamp-2">

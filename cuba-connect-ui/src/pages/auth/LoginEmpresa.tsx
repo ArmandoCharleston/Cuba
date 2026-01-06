@@ -1,27 +1,34 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, Building2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LoginEmpresa = () => {
-  const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Por favor completa todos los campos");
       return;
     }
-    toast.success("Iniciando sesión...");
-    setTimeout(() => {
-      navigate("/empresa");
-    }, 1000);
+    try {
+      setLoading(true);
+      await login(email, password);
+      toast.success("Inicio de sesión exitoso");
+    } catch (error: any) {
+      toast.error(error.message || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +84,7 @@ const LoginEmpresa = () => {
               </div>
 
               <Button type="submit" className="w-full" size="lg">
-                Iniciar Sesión
+                {loading ? "Iniciando..." : "Iniciar Sesión"}
               </Button>
             </form>
 

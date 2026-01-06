@@ -12,24 +12,53 @@ import {
   ArrowLeft,
   Heart,
 } from "lucide-react";
-import { negociosMock } from "@/data/negociosMock";
-import { serviciosMock } from "@/data/serviciosMock";
-import { ciudadesMock } from "@/data/ciudadesMock";
-import { categoriasMock } from "@/data/categoriasMock";
-import { resenasMock } from "@/data/resenasMock";
-import { usuariosMock } from "@/data/usuariosMock";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 const NegocioDetalle = () => {
   const { id } = useParams();
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedService, setSelectedService] = useState("");
+  const [negocio, setNegocio] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const negocio = negociosMock.find((n) => n.id === id);
-  const servicios = serviciosMock.filter((s) => s.negocioId === id);
-  const resenas = resenasMock.filter((r) => r.negocioId === id);
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchNegocio = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.negocios.getById(id);
+        setNegocio(response.data);
+      } catch (err: any) {
+        setError(err.message || "Error al cargar el negocio");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNegocio();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Cargando negocio...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
 
   if (!negocio) {
     return (
@@ -39,15 +68,32 @@ const NegocioDetalle = () => {
     );
   }
 
-  const ciudad = ciudadesMock.find((c) => c.id === negocio.ciudadId);
-  const categoria = categoriasMock.find((c) => c.id === negocio.categoriaId);
+  const ciudad = negocio.ciudad;
+  const categoria = negocio.categoria;
+  const servicios = negocio.servicios || [];
+  const resenas = negocio.resenas || [];
 
-  const handleReserva = () => {
+  const handleReserva = async () => {
     if (!selectedService || !selectedDate || !selectedTime) {
       toast.error("Por favor completa todos los campos");
       return;
     }
-    toast.success("Reserva realizada exitosamente!");
+    
+    try {
+      await api.reservas.create({
+        negocioId: negocio.id.toString(),
+        servicioId: selectedService,
+        fecha: selectedDate,
+        hora: selectedTime,
+      });
+      toast.success("Reserva realizada exitosamente!");
+      // Reset form
+      setSelectedService("");
+      setSelectedDate("");
+      setSelectedTime("");
+    } catch (error: any) {
+      toast.error(error.message || "Error al crear la reserva");
+    }
   };
 
   return (
@@ -63,23 +109,42 @@ const NegocioDetalle = () => {
 
         {/* Hero Images */}
         <div className="mb-8 grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <img
-              src={negocio.fotos[0]}
-              alt={negocio.nombre}
-              className="h-[400px] w-full rounded-lg object-cover"
-            />
-          </div>
-          <div className="grid gap-4">
-            {negocio.fotos.slice(1, 3).map((foto, idx) => (
-              <img
-                key={idx}
-                src={foto}
-                alt={`${negocio.nombre} ${idx + 2}`}
-                className="h-[192px] w-full rounded-lg object-cover"
-              />
-            ))}
-          </div>
+          {(() => {
+            // Handle fotos - can be array of strings or array of objects with url property
+            const fotos = negocio.fotos || [];
+            const fotoUrls = fotos.map((foto: any) => 
+              typeof foto === 'string' ? foto : foto.url
+            );
+            const mainFoto = negocio.foto || fotoUrls[0] || null;
+            
+            return (
+              <>
+                <div className="md:col-span-2">
+                  {mainFoto ? (
+                    <img
+                      src={mainFoto}
+                      alt={negocio.nombre}
+                      className="h-[400px] w-full rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-muted">
+                      <span className="text-muted-foreground">Sin imagen</span>
+                    </div>
+                  )}
+                </div>
+                <div className="grid gap-4">
+                  {fotoUrls.slice(1, 3).map((fotoUrl: string, idx: number) => (
+                    <img
+                      key={idx}
+                      src={fotoUrl}
+                      alt={`${negocio.nombre} ${idx + 2}`}
+                      className="h-[192px] w-full rounded-lg object-cover"
+                    />
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
@@ -179,42 +244,29 @@ const NegocioDetalle = () => {
               <CardContent className="p-6">
                 <h2 className="mb-6 text-2xl font-semibold">Reseñas</h2>
                 <div className="space-y-6">
-                  {resenas.map((resena) => {
-                    const cliente = usuariosMock.find((u) => u.id === resena.clienteId);
-                    return (
-                      <div key={resena.id} className="border-b border-border pb-6 last:border-0">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold">
-                              {cliente?.nombre} {cliente?.apellido}
-                            </p>
-                            <div className="flex items-center space-x-1">
-                              {Array.from({ length: resena.calificacion }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className="h-4 w-4 fill-accent text-accent"
-                                />
-                              ))}
-                            </div>
+                  {resenas.map((resena: any) => (
+                    <div key={resena.id} className="border-b border-border pb-6 last:border-0">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">
+                            {resena.cliente?.nombre} {resena.cliente?.apellido}
+                          </p>
+                          <div className="flex items-center space-x-1">
+                            {Array.from({ length: resena.calificacion }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className="h-4 w-4 fill-accent text-accent"
+                              />
+                            ))}
                           </div>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(resena.fecha).toLocaleDateString()}
-                          </span>
                         </div>
-                        <p className="text-muted-foreground">{resena.comentario}</p>
-                        {resena.respuesta && (
-                          <div className="mt-3 rounded-lg bg-muted/50 p-3">
-                            <p className="mb-1 text-sm font-semibold">
-                              Respuesta del negocio:
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {resena.respuesta}
-                            </p>
-                          </div>
-                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(resena.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <p className="text-muted-foreground">{resena.comentario}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -282,21 +334,23 @@ const NegocioDetalle = () => {
                   </p>
                 </div>
 
-                <div className="mt-6 space-y-2 border-t border-border pt-6">
-                  <h4 className="font-semibold">Horario de Atención</h4>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {Object.entries(negocio.horarios).map(([dia, horario]) => (
-                      <div key={dia} className="flex justify-between">
-                        <span className="capitalize">{dia}</span>
-                        <span>
-                          {horario.abierto
-                            ? `${horario.inicio} - ${horario.fin}`
-                            : "Cerrado"}
-                        </span>
-                      </div>
-                    ))}
+                {negocio.horarios && (
+                  <div className="mt-6 space-y-2 border-t border-border pt-6">
+                    <h4 className="font-semibold">Horario de Atención</h4>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {Object.entries(negocio.horarios as Record<string, any>).map(([dia, horario]) => (
+                        <div key={dia} className="flex justify-between">
+                          <span className="capitalize">{dia}</span>
+                          <span>
+                            {horario?.abierto
+                              ? `${horario.inicio} - ${horario.fin}`
+                              : "Cerrado"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
