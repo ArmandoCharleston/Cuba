@@ -65,3 +65,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 };
 
 
+
+
+
+
+

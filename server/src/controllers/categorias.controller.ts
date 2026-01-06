@@ -47,3 +47,8 @@ export const getCategoriaById = async (req: AuthRequest, res: Response) => {
 };
 
 
+
+
+
+
+

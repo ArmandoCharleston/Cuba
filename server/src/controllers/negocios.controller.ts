@@ -233,3 +233,8 @@ export const deleteNegocio = async (req: AuthRequest, res: Response) => {
 };
 
 
+
+
+
+
+

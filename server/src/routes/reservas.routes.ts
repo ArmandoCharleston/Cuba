@@ -12,3 +12,8 @@ router.patch('/:id/estado', authenticate, reservasController.updateReservaEstado
 export default router;
 
 
+
+
+
+
+

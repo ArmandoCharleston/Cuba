@@ -14,3 +14,8 @@ router.delete('/:id', authenticate, negociosController.deleteNegocio);
 export default router;
 
 
+
+
+
+
+
