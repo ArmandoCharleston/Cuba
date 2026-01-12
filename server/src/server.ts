@@ -2,7 +2,8 @@ import app from './app';
 import { config } from './config/env';
 import prisma from './config/database';
 
-const PORT = config.port;
+// Usar process.env.PORT directamente (requerido por Dockploy)
+const PORT = process.env.PORT || config.port;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

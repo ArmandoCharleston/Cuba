@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+server/node_modules/
+cuba-connect-ui/node_modules/
+
+# Build outputs
+server/dist/
+cuba-connect-ui/dist/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+**/__tests__/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+
+# Development files
+server/src/**/*.ts
+!server/src/**/*.d.ts
+cuba-connect-ui/src/
+
+# Lock files (se copiarán en Dockerfile)
+package-lock.json
+server/package-lock.json
+cuba-connect-ui/package-lock.json
+
+# Misc
+*.map
+coverage/
+.nyc_output/
+
+

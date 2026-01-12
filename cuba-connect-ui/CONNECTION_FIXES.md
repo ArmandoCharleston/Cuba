@@ -99,3 +99,5 @@ CORS_ORIGIN=http://localhost:5173
    - Probar con datos inválidos
    - Probar sin autenticación en rutas protegidas
 
+
+
