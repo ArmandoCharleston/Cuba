@@ -1,0 +1,30 @@
+[providers]
+node = "20"
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+# Deshabilitar instalación automática de Nixpacks
+dependsOn = []
+cmds = [
+  "echo 'Installing dependencies...'",
+  "cd server && npm ci --ignore-scripts",
+  "cd ../cuba-connect-ui && npm ci --ignore-scripts"
+]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = [
+  "echo 'Building backend...'",
+  "cd server && npm run build",
+  "echo 'Generating Prisma Client...'",
+  "cd server && npx prisma generate",
+  "echo 'Building frontend...'",
+  "cd ../cuba-connect-ui && npm run build",
+  "echo 'Build completed!'"
+]
+
+[start]
+cmd = "cd server && npx prisma migrate deploy && node dist/server.js"
+

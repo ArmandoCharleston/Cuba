@@ -15,7 +15,8 @@ COPY server/package*.json ./server/
 COPY cuba-connect-ui/package*.json ./cuba-connect-ui/
 
 # Instalar dependencias de root (solo para concurrently en dev, no necesario en prod)
-RUN npm ci --ignore-scripts || true
+# Usar npm install en lugar de npm ci porque puede no haber package-lock.json válido
+RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts || npm install --ignore-scripts; else npm install --ignore-scripts || true; fi
 
 # Build del backend
 WORKDIR /app/server
