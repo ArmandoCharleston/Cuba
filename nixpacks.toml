@@ -16,10 +16,10 @@ cmds = [
 [phases.build]
 dependsOn = ["install"]
 cmds = [
-  "echo 'Building backend...'",
-  "cd server && npm run build",
   "echo 'Generating Prisma Client...'",
   "cd server && npx prisma generate",
+  "echo 'Building backend...'",
+  "cd server && npm run build",
   "echo 'Building frontend...'",
   "cd ../cuba-connect-ui && npm run build",
   "echo 'Build completed!'"
