@@ -1,10 +1,15 @@
-# Configuración para Dockploy con Nixpacks
-# Si quieres usar Dockerfile, renombra este archivo o elimínalo
-# Dockploy usará nixpacks.toml automáticamente si este archivo no especifica dockerfile
+# Configuración para Dockploy - Usando Dockerfile
+# Dockerfile está funcionando correctamente (verificado localmente)
+
+build:
+  dockerfile: Dockerfile
+  context: .
+  # No especificar build command - Dockploy lo manejará automáticamente
 
 deploy:
   port: 3000
-  # El comando de inicio está en nixpacks.toml [start]
+  # El comando de inicio está en el Dockerfile (CMD)
+  # No especificar start command aquí
   env:
     - NODE_ENV=production
 
