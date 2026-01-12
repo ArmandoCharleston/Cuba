@@ -6,6 +6,7 @@ cuba-connect-ui/node_modules/
 # Build outputs
 server/dist/
 cuba-connect-ui/dist/
+dist/
 
 # Environment files
 .env
@@ -31,5 +32,6 @@ Thumbs.db
 # Misc
 *.map
 coverage/
+
 
 
