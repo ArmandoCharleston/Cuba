@@ -40,19 +40,10 @@ Thumbs.db
 **/*.spec.ts
 **/*.spec.js
 
-# Development files
-server/src/**/*.ts
-!server/src/**/*.d.ts
-cuba-connect-ui/src/
-
-# Lock files (se copiarán en Dockerfile)
-package-lock.json
-server/package-lock.json
-cuba-connect-ui/package-lock.json
-
 # Misc
 *.map
 coverage/
 .nyc_output/
+
 
 

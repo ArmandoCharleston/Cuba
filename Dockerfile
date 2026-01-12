@@ -22,10 +22,12 @@ RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts || npm install --i
 WORKDIR /app/server
 COPY server/ .
 RUN npm ci --ignore-scripts
-RUN npm run build
 
-# Generar Prisma Client
+# Generar Prisma Client antes de compilar
 RUN npx prisma generate
+
+# Compilar TypeScript
+RUN npm run build
 
 # Build del frontend
 WORKDIR /app/cuba-connect-ui
@@ -36,20 +38,22 @@ RUN npm run build
 # Stage 2: Producción
 FROM base AS production
 
-# Copiar package.json
+# Copiar package.json y package-lock.json
 COPY package*.json ./
 COPY server/package*.json ./server/
 
 # Instalar solo dependencias de producción del servidor
 WORKDIR /app/server
-RUN npm ci --only=production --ignore-scripts
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
+
+# Copiar schema de Prisma antes de generar el cliente
+COPY --from=build /app/server/prisma ./prisma
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
 
 # Copiar código compilado del backend
 COPY --from=build /app/server/dist ./dist
-COPY --from=build /app/server/prisma ./prisma
 
 # Copiar frontend build (mantener estructura de directorios)
 COPY --from=build /app/cuba-connect-ui/dist /app/cuba-connect-ui/dist

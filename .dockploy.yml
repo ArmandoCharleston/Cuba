@@ -1,12 +1,16 @@
 # Configuración para Dockploy
-# Si Dockploy detecta este archivo, usará Docker en lugar de Nixpacks
+# Este archivo fuerza el uso de Dockerfile en lugar de Nixpacks
 
 build:
   dockerfile: Dockerfile
   context: .
+  # No especificar build command - Dockploy lo manejará automáticamente
 
 deploy:
   port: 3000
+  # El comando de inicio está en el Dockerfile (CMD)
+  # No especificar start command aquí
   env:
     - NODE_ENV=production
+
 
