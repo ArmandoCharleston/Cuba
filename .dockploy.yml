@@ -4,6 +4,9 @@
 build:
   dockerfile: Dockerfile
   context: .
+  # Build-time variables (se inyectan durante el build)
+  args:
+    - VITE_API_URL=${VITE_API_URL}
   # No especificar build command - Dockploy lo manejará automáticamente
 
 deploy:
@@ -12,5 +15,12 @@ deploy:
   # No especificar start command aquí
   env:
     - NODE_ENV=production
+    - PORT=3000
+    - HOST=0.0.0.0
+    # Variables de base de datos (runtime)
+    - DATABASE_URL=${DATABASE_URL}
+    - JWT_SECRET=${JWT_SECRET}
+    - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+    - CORS_ORIGIN=${CORS_ORIGIN:-*}
 
 

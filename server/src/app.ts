@@ -54,16 +54,25 @@ app.use('/api/admin', adminRoutes);
 
 // Servir archivos estáticos del frontend (SOLO en producción)
 if (config.nodeEnv === 'production') {
+  // Path relativo desde dist/app.js a cuba-connect-ui/dist
   const frontendDistPath = path.join(__dirname, '../../cuba-connect-ui/dist');
-  app.use(express.static(frontendDistPath));
+  console.log(`📁 Serving frontend from: ${frontendDistPath}`);
+  
+  // Servir archivos estáticos
+  app.use(express.static(frontendDistPath, {
+    maxAge: '1y', // Cache estático por 1 año
+    etag: true,
+    lastModified: true,
+  }));
   
   // SPA fallback: todas las rutas no-API redirigen a index.html
-  // Express.static llama a next() si no encuentra el archivo, así que esto captura rutas no-API
   app.get('*', (req, res, next) => {
     // Solo manejar rutas que NO son API
     if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(frontendDistPath, 'index.html'), (err) => {
+      const indexPath = path.join(frontendDistPath, 'index.html');
+      res.sendFile(indexPath, (err) => {
         if (err) {
+          console.error(`❌ Error serving index.html: ${err.message}`);
           next(err);
         }
       });

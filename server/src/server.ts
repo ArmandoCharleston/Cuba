@@ -4,9 +4,10 @@ import prisma from './config/database';
 
 // Usar process.env.PORT directamente (requerido por Dockploy)
 const PORT = process.env.PORT || config.port;
+const HOST = process.env.HOST || '0.0.0.0'; // 0.0.0.0 necesario para Docker
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${config.nodeEnv}`);
 });
 

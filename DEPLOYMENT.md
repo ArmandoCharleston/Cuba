@@ -58,3 +58,6 @@ curl https://tu-dominio.com/health
 - El frontend se sirve desde `/` y las APIs desde `/api/*`
 - Las migraciones se ejecutan con `npx prisma migrate deploy` al iniciar
 
+
+
+

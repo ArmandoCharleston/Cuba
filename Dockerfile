@@ -33,6 +33,10 @@ RUN npm run build
 WORKDIR /app/cuba-connect-ui
 COPY cuba-connect-ui/ .
 RUN npm ci --ignore-scripts
+# Build-time variable para la URL de la API
+# Si no se proporciona, usa /api (ruta relativa, mismo servidor)
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Stage 2: Producción
@@ -61,6 +65,7 @@ COPY --from=build /app/cuba-connect-ui/dist /app/cuba-connect-ui/dist
 # Variables de entorno
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOST=0.0.0.0
 
 # Exponer puerto
 EXPOSE 3000
