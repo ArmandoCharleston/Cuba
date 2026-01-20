@@ -53,8 +53,8 @@ RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else n
 # Copiar schema de Prisma y migraciones antes de generar el cliente
 COPY --from=build /app/server/prisma ./prisma
 
-# Verificar que el schema existe (para debugging)
-RUN ls -la prisma/ || echo "Prisma directory not found"
+# Verificar que el schema y las migraciones existen (para debugging)
+RUN ls -la prisma/ && echo "--- Migrations directory ---" && ls -la prisma/migrations/ || echo "Prisma directory or migrations not found"
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
