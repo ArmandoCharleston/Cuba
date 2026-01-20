@@ -23,6 +23,12 @@ WORKDIR /app/server
 COPY server/ .
 RUN npm ci --ignore-scripts
 
+# Verificar que las migraciones se copiaron en el build stage
+RUN echo "=== Verificando migraciones en build stage ===" && \
+    ls -la prisma/ && \
+    ls -la prisma/migrations/ && \
+    ls -la prisma/migrations/20260120124313_init/ || echo "Migraciones no encontradas en build stage"
+
 # Generar Prisma Client antes de compilar
 RUN npx prisma generate
 
