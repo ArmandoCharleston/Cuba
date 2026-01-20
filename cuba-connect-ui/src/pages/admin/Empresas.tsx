@@ -1,86 +1,133 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, CheckCircle, XCircle, Eye, Building2 } from "lucide-react";
-import { negociosMock } from "@/data/negociosMock";
-import { categoriasMock } from "@/data/categoriasMock";
-import { ciudadesMock } from "@/data/ciudadesMock";
+import { Search, CheckCircle, XCircle, Eye, Building2, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type EstadoEmpresa = "pendiente" | "aprobada" | "rechazada";
 
-interface EmpresaExtendida {
-  id: string;
+interface Empresa {
+  id: number;
   nombre: string;
+  apellido: string;
   email: string;
-  telefono: string;
-  ciudad: string;
-  categoria: string;
-  estado: EstadoEmpresa;
-  fechaRegistro: string;
+  telefono: string | null;
+  ciudad: string | null;
+  createdAt: string;
+  negocios: Array<{
+    id: number;
+    nombre: string;
+    estado: EstadoEmpresa;
+    categoria: { nombre: string };
+    ciudad: { nombre: string };
+    _count: {
+      reservas: number;
+      resenas: number;
+    };
+  }>;
 }
 
 const Empresas = () => {
   const { toast } = useToast();
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmpresa, setSelectedEmpresa] = useState<EmpresaExtendida | null>(null);
+  const [selectedNegocio, setSelectedNegocio] = useState<{ id: number; nombre: string; estado: EstadoEmpresa; empresa: Empresa } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
-  // Simular empresas con estados
-  const [empresas, setEmpresas] = useState<EmpresaExtendida[]>(
-    negociosMock.map((negocio, index) => {
-      const ciudad = ciudadesMock.find((c) => c.id === negocio.ciudadId);
-      const categoria = categoriasMock.find((c) => c.id === negocio.categoriaId);
-      
-      return {
-        id: negocio.id,
-        nombre: negocio.nombre,
-        email: negocio.email,
-        telefono: negocio.telefono,
-        ciudad: ciudad?.nombre || "Sin ciudad",
-        categoria: categoria?.nombre || "Sin categoría",
-        estado: index % 3 === 0 ? "pendiente" : index % 3 === 1 ? "aprobada" : "rechazada",
-        fechaRegistro: `2024-0${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 28) + 1}`,
-      };
-    })
-  );
+  useEffect(() => {
+    fetchEmpresas();
+  }, []);
 
-  const handleAprobar = (id: string) => {
-    setEmpresas((prev) =>
-      prev.map((emp) => (emp.id === id ? { ...emp, estado: "aprobada" as EstadoEmpresa } : emp))
-    );
-    toast({
-      title: "Empresa Aprobada",
-      description: "La empresa ha sido aprobada exitosamente.",
-    });
-    setDialogOpen(false);
+  const fetchEmpresas = async () => {
+    try {
+      setLoading(true);
+      const response = await api.admin.getEmpresas({ limit: 100 });
+      setEmpresas(response.data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al cargar las empresas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRechazar = (id: string) => {
-    setEmpresas((prev) =>
-      prev.map((emp) => (emp.id === id ? { ...emp, estado: "rechazada" as EstadoEmpresa } : emp))
-    );
-    toast({
-      title: "Empresa Rechazada",
-      description: "La empresa ha sido rechazada.",
-      variant: "destructive",
-    });
-    setDialogOpen(false);
+  const handleAprobar = async (negocioId: number) => {
+    try {
+      setUpdating(true);
+      await api.admin.updateNegocioEstado(negocioId.toString(), "aprobada");
+      toast({
+        title: "Empresa Aprobada",
+        description: "La empresa ha sido aprobada exitosamente.",
+      });
+      setDialogOpen(false);
+      await fetchEmpresas();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al aprobar la empresa",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const filteredEmpresas = empresas.filter((emp) =>
-    emp.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.ciudad.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleRechazar = async (negocioId: number) => {
+    try {
+      setUpdating(true);
+      await api.admin.updateNegocioEstado(negocioId.toString(), "rechazada");
+      toast({
+        title: "Empresa Rechazada",
+        description: "La empresa ha sido rechazada.",
+        variant: "destructive",
+      });
+      setDialogOpen(false);
+      await fetchEmpresas();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al rechazar la empresa",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Flatten empresas to show each negocio as a row
+  const negociosList = empresas.flatMap((empresa) =>
+    empresa.negocios.map((negocio) => ({
+      id: negocio.id,
+      nombre: negocio.nombre,
+      email: empresa.email,
+      telefono: empresa.telefono || "N/A",
+      ciudad: negocio.ciudad.nombre,
+      categoria: negocio.categoria.nombre,
+      estado: negocio.estado,
+      fechaRegistro: empresa.createdAt,
+      empresa,
+    }))
   );
 
-  const pendientes = empresas.filter((e) => e.estado === "pendiente").length;
-  const aprobadas = empresas.filter((e) => e.estado === "aprobada").length;
-  const rechazadas = empresas.filter((e) => e.estado === "rechazada").length;
+  const filteredNegocios = negociosList.filter((negocio) =>
+    negocio.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    negocio.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    negocio.ciudad.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const pendientes = negociosList.filter((e) => e.estado === "pendiente").length;
+  const aprobadas = negociosList.filter((e) => e.estado === "aprobada").length;
+  const rechazadas = negociosList.filter((e) => e.estado === "rechazada").length;
 
   return (
     <div className="space-y-8">
@@ -135,68 +182,83 @@ const Empresas = () => {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Ciudad</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEmpresas.map((empresa) => (
-                <TableRow key={empresa.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{empresa.nombre}</p>
-                        <p className="text-sm text-muted-foreground">{empresa.telefono}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{empresa.email}</TableCell>
-                  <TableCell className="text-sm">{empresa.ciudad}</TableCell>
-                  <TableCell className="text-sm">{empresa.categoria}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        empresa.estado === "aprobada"
-                          ? "default"
-                          : empresa.estado === "pendiente"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                    >
-                      {empresa.estado}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(empresa.fechaRegistro).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedEmpresa(empresa);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Ver
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredNegocios.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No se encontraron empresas</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Ciudad</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredNegocios.map((negocio) => (
+                  <TableRow key={negocio.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{negocio.nombre}</p>
+                          <p className="text-sm text-muted-foreground">{negocio.telefono}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{negocio.email}</TableCell>
+                    <TableCell className="text-sm">{negocio.ciudad}</TableCell>
+                    <TableCell className="text-sm">{negocio.categoria}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          negocio.estado === "aprobada"
+                            ? "default"
+                            : negocio.estado === "pendiente"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                      >
+                        {negocio.estado}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(negocio.fechaRegistro).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedNegocio({
+                            id: negocio.id,
+                            nombre: negocio.nombre,
+                            estado: negocio.estado,
+                            empresa: negocio.empresa,
+                          });
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -207,56 +269,79 @@ const Empresas = () => {
             <DialogTitle>Detalles de la Empresa</DialogTitle>
             <DialogDescription>Revisa la información y aprueba o rechaza la solicitud</DialogDescription>
           </DialogHeader>
-          {selectedEmpresa && (
+          {selectedNegocio && (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Nombre</p>
-                  <p className="text-lg font-semibold">{selectedEmpresa.nombre}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Nombre del Negocio</p>
+                  <p className="text-lg font-semibold">{selectedNegocio.nombre}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Email</p>
-                  <p className="text-lg">{selectedEmpresa.email}</p>
+                  <p className="text-lg">{selectedNegocio.empresa.email}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
-                  <p className="text-lg">{selectedEmpresa.telefono}</p>
+                  <p className="text-lg">{selectedNegocio.empresa.telefono || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Ciudad</p>
-                  <p className="text-lg">{selectedEmpresa.ciudad}</p>
+                  <p className="text-lg">{selectedNegocio.empresa.ciudad || "N/A"}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Categoría</p>
-                  <p className="text-lg">{selectedEmpresa.categoria}</p>
-                </div>
+                {selectedNegocio.empresa.negocios[0] && (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Categoría</p>
+                      <p className="text-lg">{selectedNegocio.empresa.negocios[0].categoria.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Ciudad del Negocio</p>
+                      <p className="text-lg">{selectedNegocio.empresa.negocios[0].ciudad.nombre}</p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Estado Actual</p>
                   <Badge
                     variant={
-                      selectedEmpresa.estado === "aprobada"
+                      selectedNegocio.estado === "aprobada"
                         ? "default"
-                        : selectedEmpresa.estado === "pendiente"
+                        : selectedNegocio.estado === "pendiente"
                         ? "secondary"
                         : "destructive"
                     }
                   >
-                    {selectedEmpresa.estado}
+                    {selectedNegocio.estado}
                   </Badge>
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            {selectedEmpresa?.estado !== "aprobada" && (
-              <Button onClick={() => handleAprobar(selectedEmpresa?.id || "")}>
-                <CheckCircle className="mr-2 h-4 w-4" />
+            {selectedNegocio?.estado !== "aprobada" && (
+              <Button
+                onClick={() => handleAprobar(selectedNegocio?.id || 0)}
+                disabled={updating}
+              >
+                {updating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                )}
                 Aprobar
               </Button>
             )}
-            {selectedEmpresa?.estado !== "rechazada" && (
-              <Button variant="destructive" onClick={() => handleRechazar(selectedEmpresa?.id || "")}>
-                <XCircle className="mr-2 h-4 w-4" />
+            {selectedNegocio?.estado !== "rechazada" && (
+              <Button
+                variant="destructive"
+                onClick={() => handleRechazar(selectedNegocio?.id || 0)}
+                disabled={updating}
+              >
+                {updating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="mr-2 h-4 w-4" />
+                )}
                 Rechazar
               </Button>
             )}

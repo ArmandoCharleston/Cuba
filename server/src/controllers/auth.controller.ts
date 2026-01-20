@@ -8,7 +8,7 @@ export const register = async (req: AuthRequest, res: Response) => {
   const { nombre, apellido, email, password, telefono, ciudad, rol } = req.body;
 
   if (!nombre || !apellido || !email || !password) {
-    throw new AppError('Missing required fields', 400);
+    throw new AppError('Faltan campos requeridos: nombre, apellido, email y contraseña son obligatorios', 400);
   }
 
   const result = await authService.register({
@@ -31,7 +31,7 @@ export const login = async (req: AuthRequest, res: Response) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    throw new AppError('Email and password required', 400);
+    throw new AppError('El correo electrónico y la contraseña son requeridos', 400);
   }
 
   const result = await authService.login({ email, password });

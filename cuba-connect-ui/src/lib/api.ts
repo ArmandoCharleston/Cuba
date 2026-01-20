@@ -29,12 +29,72 @@ const request = async <T>(
 
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
-      let errorMessage = 'An error occurred';
+      let errorMessage = 'Ocurrió un error';
       try {
         const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        
+        // Map common HTTP status codes to user-friendly messages
+        if (!errorData.message && !errorData.error) {
+          switch (response.status) {
+            case 400:
+              errorMessage = 'Solicitud inválida. Por favor verifica los datos ingresados.';
+              break;
+            case 401:
+              errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
+              break;
+            case 403:
+              errorMessage = 'No tienes permisos para realizar esta acción.';
+              break;
+            case 404:
+              errorMessage = 'El recurso solicitado no fue encontrado.';
+              break;
+            case 409:
+              errorMessage = 'Ya existe un recurso con estos datos.';
+              break;
+            case 422:
+              errorMessage = 'Los datos proporcionados no son válidos.';
+              break;
+            case 500:
+              errorMessage = 'Error del servidor. Por favor intenta más tarde.';
+              break;
+            case 502:
+              errorMessage = 'Error de conexión con el servidor. Por favor intenta más tarde.';
+              break;
+            case 503:
+              errorMessage = 'El servicio no está disponible temporalmente.';
+              break;
+            default:
+              errorMessage = `Error ${response.status}: ${errorMessage}`;
+          }
+        }
       } catch {
-        errorMessage = `HTTP error! status: ${response.status}`;
+        // If we can't parse the error response, use status-based messages
+        switch (response.status) {
+          case 400:
+            errorMessage = 'Solicitud inválida. Por favor verifica los datos ingresados.';
+            break;
+          case 401:
+            errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
+            break;
+          case 403:
+            errorMessage = 'No tienes permisos para realizar esta acción.';
+            break;
+          case 404:
+            errorMessage = 'El recurso solicitado no fue encontrado.';
+            break;
+          case 500:
+            errorMessage = 'Error del servidor. Por favor intenta más tarde.';
+            break;
+          case 502:
+            errorMessage = 'Error de conexión con el servidor. Por favor intenta más tarde.';
+            break;
+          case 503:
+            errorMessage = 'El servicio no está disponible temporalmente.';
+            break;
+          default:
+            errorMessage = `Error ${response.status}: Ocurrió un error inesperado.`;
+        }
       }
       throw new Error(errorMessage);
     }
@@ -366,6 +426,19 @@ export const api = {
       return request<{ success: boolean; data: any }>(`/admin/usuarios/${userId}/rol`, {
         method: 'PATCH',
         body: JSON.stringify({ rol }),
+      });
+    },
+
+    updateNegocioEstado: async (negocioId: string, estado: 'pendiente' | 'aprobada' | 'rechazada') => {
+      return request<{ success: boolean; data: any; message: string }>(`/admin/negocios/${negocioId}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado }),
+      });
+    },
+
+    removeDuplicateAdmins: async () => {
+      return request<{ success: boolean; data: any; message: string }>('/admin/remove-duplicate-admins', {
+        method: 'POST',
       });
     },
   },

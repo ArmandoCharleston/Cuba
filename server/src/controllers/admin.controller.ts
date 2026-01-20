@@ -160,6 +160,100 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
   });
 };
 
+export const updateNegocioEstado = async (req: AuthRequest, res: Response) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  const { id } = req.params;
+  const { estado } = req.body;
+
+  if (!estado || !['pendiente', 'aprobada', 'rechazada'].includes(estado)) {
+    throw new AppError('Estado inválido. Debe ser: pendiente, aprobada o rechazada', 400);
+  }
+
+  const negocio = await prisma.negocio.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!negocio) {
+    throw new AppError('Negocio no encontrado', 404);
+  }
+
+  const updatedNegocio = await prisma.negocio.update({
+    where: { id: parseInt(id) },
+    data: { estado: estado as 'pendiente' | 'aprobada' | 'rechazada' },
+    include: {
+      categoria: true,
+      ciudad: true,
+      propietario: {
+        select: {
+          id: true,
+          nombre: true,
+          apellido: true,
+          email: true,
+          telefono: true,
+        },
+      },
+    },
+  });
+
+  res.json({
+    success: true,
+    data: updatedNegocio,
+    message: `Negocio ${estado === 'aprobada' ? 'aprobado' : estado === 'rechazada' ? 'rechazado' : 'marcado como pendiente'} exitosamente`,
+  });
+};
+
+export const removeDuplicateAdmins = async (req: AuthRequest, res: Response) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  const adminEmail = 'admin@reservatecuba.com';
+  
+  // Obtener todos los administradores
+  const admins = await prisma.user.findMany({
+    where: { rol: 'admin' },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (admins.length <= 1) {
+    return res.json({
+      success: true,
+      message: 'No hay administradores duplicados',
+      data: { totalAdmins: admins.length },
+    });
+  }
+
+  // Mantener solo el primer admin (el más antiguo) o el que tiene el email admin@reservatecuba.com
+  const mainAdmin = admins.find((a) => a.email === adminEmail) || admins[0];
+  const duplicateAdmins = admins.filter((a) => a.id !== mainAdmin.id);
+
+  // Eliminar administradores duplicados
+  const deletedCount = await prisma.user.deleteMany({
+    where: {
+      id: {
+        in: duplicateAdmins.map((a) => a.id),
+      },
+    },
+  });
+
+  res.json({
+    success: true,
+    message: `Se eliminaron ${deletedCount.count} administrador(es) duplicado(s)`,
+    data: {
+      mainAdmin: {
+        id: mainAdmin.id,
+        email: mainAdmin.email,
+        nombre: mainAdmin.nombre,
+      },
+      deletedCount: deletedCount.count,
+      totalAdmins: admins.length - deletedCount.count,
+    },
+  });
+};
+
 export const cleanMockData = async (req: AuthRequest, res: Response) => {
   if (!req.user || req.user.rol !== 'admin') {
     throw new AppError('Admin access required', 403);

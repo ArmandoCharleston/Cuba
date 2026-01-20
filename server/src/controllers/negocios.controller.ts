@@ -9,7 +9,9 @@ export const getAllNegocios = async (req: AuthRequest, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10;
   const skip = (page - 1) * limit;
 
-  const where: any = {};
+  const where: any = {
+    estado: 'aprobada', // Solo mostrar negocios aprobados
+  };
 
   if (categoriaId) {
     where.categoriaId = parseInt(categoriaId as string);

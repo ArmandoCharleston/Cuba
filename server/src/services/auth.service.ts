@@ -24,7 +24,7 @@ export const register = async (data: RegisterData) => {
   });
 
   if (existingUser) {
-    throw new AppError('User already exists', 400);
+    throw new AppError('El usuario ya existe con este correo electrónico', 400);
   }
 
   const hashedPassword = await hashPassword(data.password);
@@ -70,13 +70,13 @@ export const login = async (data: LoginData) => {
   });
 
   if (!user) {
-    throw new AppError('Invalid credentials', 401);
+    throw new AppError('El usuario no existe', 401);
   }
 
   const isValidPassword = await comparePassword(data.password, user.password);
 
   if (!isValidPassword) {
-    throw new AppError('Invalid credentials', 401);
+    throw new AppError('La contraseña es incorrecta', 401);
   }
 
   const token = generateToken({
