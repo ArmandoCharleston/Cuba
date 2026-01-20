@@ -50,8 +50,11 @@ COPY server/package*.json ./server/
 WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
 
-# Copiar schema de Prisma antes de generar el cliente
+# Copiar schema de Prisma y migraciones antes de generar el cliente
 COPY --from=build /app/server/prisma ./prisma
+
+# Verificar que el schema existe (para debugging)
+RUN ls -la prisma/ || echo "Prisma directory not found"
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
@@ -73,5 +76,6 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Usar --schema explícitamente para asegurar que encuentra el schema
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/server.js"]
 
