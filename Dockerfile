@@ -65,12 +65,17 @@ COPY server/prisma/schema.prisma ./prisma/schema.prisma
 COPY server/prisma/migrations/migration_lock.toml ./prisma/migrations/migration_lock.toml
 COPY server/prisma/migrations/20260120124313_init/migration.sql ./prisma/migrations/20260120124313_init/migration.sql
 
+# Asegurar permisos correctos en los archivos de migración
+RUN chmod -R 644 prisma/migrations/20260120124313_init/migration.sql && \
+    chmod 755 prisma/migrations/20260120124313_init
+
 # Verificar que el schema y las migraciones existen (para debugging)
 RUN echo "=== Prisma directory ===" && ls -la prisma/ && \
     echo "=== Migrations directory ===" && ls -la prisma/migrations/ && \
     echo "=== Migration init directory ===" && ls -la prisma/migrations/20260120124313_init/ && \
     echo "=== Migration SQL file exists ===" && test -f prisma/migrations/20260120124313_init/migration.sql && echo "✅ migration.sql found" || echo "❌ migration.sql NOT found" && \
-    echo "=== Migration SQL file size ===" && ls -lh prisma/migrations/20260120124313_init/migration.sql || echo "File not found"
+    echo "=== Migration SQL file size ===" && ls -lh prisma/migrations/20260120124313_init/migration.sql && \
+    echo "=== File permissions ===" && stat prisma/migrations/20260120124313_init/migration.sql || echo "File not found"
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
