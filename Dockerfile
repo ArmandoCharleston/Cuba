@@ -97,7 +97,6 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-# Usar --schema explícitamente para asegurar que encuentra el schema
-# Verificar que las migraciones existen antes de ejecutar
-CMD ["sh", "-c", "echo 'Verificando migraciones...' && ls -la prisma/migrations/20260120124313_init/ && npx prisma migrate deploy --schema=./prisma/schema.prisma && echo 'Migraciones aplicadas correctamente' && node dist/server.js"]
+# Usar path absoluto para el schema y verificar estructura antes de ejecutar
+CMD ["sh", "-c", "echo '=== Verificando migraciones ===' && pwd && echo '=== Estructura de migraciones ===' && find prisma/migrations -type f && echo '=== Ejecutando migraciones con path absoluto ===' && npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma && echo '✅ Migraciones aplicadas correctamente' && node dist/server.js"]
 
