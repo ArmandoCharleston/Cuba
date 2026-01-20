@@ -1,15 +1,43 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Calendar, Star, TrendingUp } from "lucide-react";
-import { categoriasMock } from "@/data/categoriasMock";
-import { negociosMock } from "@/data/negociosMock";
-import { ciudadesMock } from "@/data/ciudadesMock";
+import { api } from "@/lib/api";
 import * as LucideIcons from "lucide-react";
 
 const Index = () => {
-  const featuredBusinesses = negociosMock.slice(0, 3);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [featuredBusinesses, setFeaturedBusinesses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [categoriasRes, ciudadesRes, negociosRes] = await Promise.all([
+          api.categorias.getAll(),
+          api.ciudades.getAll(),
+          api.negocios.getAll({ limit: 3 }),
+        ]);
+        
+        setCategorias(categoriasRes.data || []);
+        setCiudades(ciudadesRes.data || []);
+        setFeaturedBusinesses(negociosRes.data?.slice(0, 3) || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Si hay error, dejar arrays vacíos para que no se muestre nada
+        setCategorias([]);
+        setCiudades([]);
+        setFeaturedBusinesses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -40,7 +68,7 @@ const Index = () => {
                       <MapPin size={20} className="text-muted-foreground" />
                       <select className="w-full border-0 bg-transparent py-2 text-sm focus:outline-none">
                         <option>Selecciona ciudad</option>
-                        {ciudadesMock.map((ciudad) => (
+                        {ciudades.map((ciudad) => (
                           <option key={ciudad.id} value={ciudad.id}>
                             {ciudad.nombre}
                           </option>
@@ -70,31 +98,41 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {categoriasMock.map((categoria) => {
-              const IconComponent =
-                LucideIcons[categoria.icono as keyof typeof LucideIcons] as React.ComponentType<{ className?: string }>;
-              return (
-                <Link key={categoria.id} to="/negocios">
-                  <Card className="transition-all hover:shadow-medium hover:-translate-y-1">
-                    <CardContent className="flex items-center space-x-4 p-6">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                        {IconComponent && (
-                          <IconComponent className="h-7 w-7 text-primary" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{categoria.nombre}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {categoria.descripcion}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Cargando categorías...</p>
+            </div>
+          ) : categorias.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No hay categorías disponibles</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {categorias.map((categoria) => {
+                const IconComponent =
+                  LucideIcons[categoria.icono as keyof typeof LucideIcons] as React.ComponentType<{ className?: string }>;
+                return (
+                  <Link key={categoria.id} to="/negocios">
+                    <Card className="transition-all hover:shadow-medium hover:-translate-y-1">
+                      <CardContent className="flex items-center space-x-4 p-6">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                          {IconComponent && (
+                            <IconComponent className="h-7 w-7 text-primary" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{categoria.nombre}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {categoria.descripcion}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -113,39 +151,51 @@ const Index = () => {
             </Link>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {featuredBusinesses.map((negocio) => (
-              <Link key={negocio.id} to={`/negocios/${negocio.id}`}>
-                <Card className="overflow-hidden transition-all hover:shadow-medium">
-                  <div className="aspect-video overflow-hidden">
-                    <img
-                      src={negocio.foto}
-                      alt={negocio.nombre}
-                      className="h-full w-full object-cover transition-transform hover:scale-105"
-                    />
-                  </div>
-                  <CardContent className="p-5">
-                    <h3 className="mb-2 text-xl font-semibold">{negocio.nombre}</h3>
-                    <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
-                      {negocio.descripcion}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 fill-accent text-accent" />
-                        <span className="font-medium">{negocio.calificacion}</span>
-                        <span className="text-sm text-muted-foreground">
-                          ({negocio.totalResenas})
-                        </span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        Desde ${negocio.precioPromedio}
-                      </span>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Cargando negocios destacados...</p>
+            </div>
+          ) : featuredBusinesses.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No hay negocios destacados disponibles</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              {featuredBusinesses.map((negocio) => (
+                <Link key={negocio.id} to={`/negocios/${negocio.id}`}>
+                  <Card className="overflow-hidden transition-all hover:shadow-medium">
+                    <div className="aspect-video overflow-hidden">
+                      <img
+                        src={negocio.foto || "/placeholder.svg"}
+                        alt={negocio.nombre}
+                        className="h-full w-full object-cover transition-transform hover:scale-105"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                    <CardContent className="p-5">
+                      <h3 className="mb-2 text-xl font-semibold">{negocio.nombre}</h3>
+                      <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
+                        {negocio.descripcion}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1">
+                          <Star className="h-4 w-4 fill-accent text-accent" />
+                          <span className="font-medium">{negocio.calificacion || 0}</span>
+                          <span className="text-sm text-muted-foreground">
+                            ({negocio.totalResenas || 0})
+                          </span>
+                        </div>
+                        {negocio.precioPromedio && (
+                          <span className="text-sm text-muted-foreground">
+                            Desde ${negocio.precioPromedio}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

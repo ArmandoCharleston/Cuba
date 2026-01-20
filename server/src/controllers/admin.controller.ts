@@ -176,7 +176,10 @@ export const cleanMockData = async (req: AuthRequest, res: Response) => {
     },
   });
 
-  // Eliminar todos los negocios
+  // Eliminar todos los negocios y sus relaciones
+  // Primero eliminar fotos de negocios
+  await prisma.negocioFoto.deleteMany({});
+  // Luego eliminar negocios (esto eliminará automáticamente servicios, reservas, chats, etc. por cascada)
   const deletedNegocios = await prisma.negocio.deleteMany({});
 
   // Eliminar todas las reservas
