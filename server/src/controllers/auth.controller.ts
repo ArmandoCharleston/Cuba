@@ -11,14 +11,19 @@ export const register = async (req: AuthRequest, res: Response) => {
     throw new AppError('Faltan campos requeridos: nombre, apellido, email y contraseña son obligatorios', 400);
   }
 
+  // Prevenir creación de usuarios admin desde el registro público
+  if (rol === 'admin') {
+    throw new AppError('No se puede crear un usuario administrador desde el registro público', 403);
+  }
+
   const result = await authService.register({
     nombre,
     apellido,
     email,
     password,
-    telefono,
-    ciudad,
-    rol,
+    telefono: telefono || undefined,
+    ciudad: ciudad || undefined,
+    rol: rol === 'empresa' ? 'empresa' : 'cliente', // Solo permitir cliente o empresa
   });
 
   res.status(201).json({

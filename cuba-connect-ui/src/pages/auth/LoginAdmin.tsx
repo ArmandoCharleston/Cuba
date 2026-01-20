@@ -5,23 +5,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LoginAdmin = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    if (!email || !password) {
       toast.error("Por favor completa todos los campos");
       return;
     }
-    toast.success("Iniciando sesión...");
-    setTimeout(() => {
-      navigate("/admin");
-    }, 1000);
+    try {
+      setLoading(true);
+      await login(email, password);
+      // El navigate se hace automáticamente en AuthContext basado en el rol
+      toast.success("Inicio de sesión exitoso");
+    } catch (error: any) {
+      toast.error(error.message || "Error al iniciar sesión");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,13 +52,13 @@ const LoginAdmin = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="admin"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="admin@reservatecuba.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -66,8 +75,15 @@ const LoginAdmin = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Acceder al Panel
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Iniciando sesión...
+                  </>
+                ) : (
+                  "Acceder al Panel"
+                )}
               </Button>
             </form>
           </CardContent>

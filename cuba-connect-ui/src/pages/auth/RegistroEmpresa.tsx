@@ -60,12 +60,12 @@ const RegistroEmpresa = () => {
         nombre: formData.nombreContacto,
         apellido: formData.apellidoContacto,
         email: formData.email,
-        telefono: formData.telefono,
-        ciudad: formData.ciudad,
+        telefono: formData.telefono || undefined,
+        ciudad: formData.ciudad || undefined,
         password: formData.password,
         rol: "empresa",
       });
-      toast.success("Cuenta de empresa creada exitosamente!");
+      toast.success("Cuenta de empresa creada exitosamente! Puedes agregar los detalles del negocio en tu panel.");
       // Nota: La creación detallada del negocio (nombreNegocio, categoría, etc.)
       // se puede manejar en el panel de empresa con formularios adicionales.
     } catch (error: any) {
@@ -114,37 +114,36 @@ const RegistroEmpresa = () => {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="categoria">Categoría *</Label>
+                      <Label htmlFor="categoria">Categoría</Label>
                       <select
                         id="categoria"
                         name="categoria"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={formData.categoria}
                         onChange={handleChange}
-                        required
                         disabled={loadingData}
                       >
-                        <option value="">{loadingData ? "Cargando..." : "Selecciona"}</option>
+                        <option value="">{loadingData ? "Cargando..." : "Selecciona (opcional)"}</option>
                         {categorias.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.nombre}
                           </option>
                         ))}
                       </select>
+                      <p className="text-xs text-muted-foreground">Puedes agregar la categoría después del registro</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ciudad">Ciudad *</Label>
+                      <Label htmlFor="ciudad">Ciudad</Label>
                       <select
                         id="ciudad"
                         name="ciudad"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={formData.ciudad}
                         onChange={handleChange}
-                        required
                         disabled={loadingData}
                       >
-                        <option value="">{loadingData ? "Cargando..." : "Selecciona"}</option>
+                        <option value="">{loadingData ? "Cargando..." : "Selecciona (opcional)"}</option>
                         {ciudades.map((ciudad) => (
                           <option key={ciudad.id} value={ciudad.nombre}>
                             {ciudad.nombre}
@@ -221,14 +220,13 @@ const RegistroEmpresa = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="telefono">Teléfono *</Label>
+                      <Label htmlFor="telefono">Teléfono</Label>
                       <Input
                         id="telefono"
                         name="telefono"
-                        placeholder="+53 7 832 1234"
+                        placeholder="+53 7 832 1234 (opcional)"
                         value={formData.telefono}
                         onChange={handleChange}
-                        required
                       />
                     </div>
                   </div>

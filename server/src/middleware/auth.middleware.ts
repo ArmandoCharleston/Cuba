@@ -44,7 +44,9 @@ export const authenticate = async (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      next(new AppError('Invalid token', 401));
+      next(new AppError('Token inválido o expirado. Por favor inicia sesión nuevamente', 401));
+    } else if (error instanceof jwt.TokenExpiredError) {
+      next(new AppError('Tu sesión ha expirado. Por favor inicia sesión nuevamente', 401));
     } else {
       next(error);
     }

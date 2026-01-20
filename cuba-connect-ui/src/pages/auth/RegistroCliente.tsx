@@ -52,8 +52,8 @@ const RegistroCliente = () => {
         nombre: formData.nombre,
         apellido: formData.apellido,
         email: formData.email,
-        telefono: formData.telefono,
-        ciudad: formData.ciudad,
+        telefono: formData.telefono || undefined,
+        ciudad: formData.ciudad || undefined,
         password: formData.password,
         rol: "cliente",
       });
@@ -128,29 +128,27 @@ const RegistroCliente = () => {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="telefono">Teléfono *</Label>
+                  <Label htmlFor="telefono">Teléfono</Label>
                   <Input
                     id="telefono"
                     name="telefono"
-                    placeholder="+53 5 234 5678"
+                    placeholder="+53 5 234 5678 (opcional)"
                     value={formData.telefono}
                     onChange={handleChange}
-                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ciudad">Ciudad *</Label>
+                  <Label htmlFor="ciudad">Ciudad</Label>
                   <select
                     id="ciudad"
                     name="ciudad"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={formData.ciudad}
                     onChange={handleChange}
-                    required
                     disabled={loadingCiudades}
                   >
-                    <option value="">{loadingCiudades ? "Cargando..." : "Selecciona"}</option>
+                    <option value="">{loadingCiudades ? "Cargando..." : "Selecciona (opcional)"}</option>
                     {ciudades.map((ciudad) => (
                       <option key={ciudad.id} value={ciudad.nombre}>
                         {ciudad.nombre}
