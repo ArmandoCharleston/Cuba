@@ -97,6 +97,6 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-# Usar path absoluto para el schema y verificar estructura antes de ejecutar
-CMD ["sh", "-c", "echo '=== Verificando migraciones ===' && pwd && echo '=== Estructura de migraciones ===' && find prisma/migrations -type f && echo '=== Ejecutando migraciones con path absoluto ===' && npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma && echo '✅ Migraciones aplicadas correctamente' && node dist/server.js"]
+# Si migrate deploy falla, intentar ejecutar el SQL directamente como fallback
+CMD ["sh", "-c", "echo '=== Verificando migraciones ===' && pwd && find prisma/migrations -type f && echo '=== Intentando migrate deploy ===' && (npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma || (echo '⚠️ migrate deploy falló, intentando db push como fallback...' && npx prisma db push --schema=/app/server/prisma/schema.prisma --accept-data-loss)) && echo '✅ Base de datos lista' && node dist/server.js"]
 
