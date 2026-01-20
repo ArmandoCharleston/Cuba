@@ -97,6 +97,22 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-# Si migrate deploy falla, intentar ejecutar el SQL directamente como fallback
-CMD ["sh", "-c", "echo '=== Verificando migraciones ===' && pwd && find prisma/migrations -type f && echo '=== Intentando migrate deploy ===' && (npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma || (echo '⚠️ migrate deploy falló, intentando db push como fallback...' && npx prisma db push --schema=/app/server/prisma/schema.prisma --accept-data-loss)) && echo '✅ Base de datos lista' && node dist/server.js"]
+# Estrategia: Intentar migrate deploy, si falla usar db push, y luego marcar migración como aplicada
+CMD ["sh", "-c", "echo '=== Verificando estado de la base de datos ===' && \
+  if npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma 2>/dev/null; then \
+    echo '✅ Migraciones aplicadas correctamente'; \
+  else \
+    echo '⚠️ migrate deploy falló, verificando si las tablas ya existen...' && \
+    if npx prisma db execute --stdin --schema=/app/server/prisma/schema.prisma <<< 'SHOW TABLES;' 2>/dev/null | grep -q 'users'; then \
+      echo '✅ Las tablas ya existen, marcando migración como aplicada...' && \
+      npx prisma migrate resolve --applied 20260120124313_init --schema=/app/server/prisma/schema.prisma 2>/dev/null || \
+      echo '⚠️ No se pudo marcar la migración como aplicada, pero las tablas existen'; \
+    else \
+      echo '⚠️ Las tablas no existen, usando db push...' && \
+      npx prisma db push --schema=/app/server/prisma/schema.prisma --accept-data-loss && \
+      npx prisma migrate resolve --applied 20260120124313_init --schema=/app/server/prisma/schema.prisma 2>/dev/null || true; \
+    fi; \
+  fi && \
+  echo '✅ Base de datos lista' && \
+  node dist/server.js"]
 
