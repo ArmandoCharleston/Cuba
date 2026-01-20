@@ -21,7 +21,7 @@ try {
     exit 1
 }
 
-$headers = @{"Authorization"="Bearer $token";"ContentType"="application/json"}
+$headers = @{"Authorization"="Bearer $token";"Content-Type"="application/json"}
 
 # 2. Limpiar datos mock
 Write-Host ""

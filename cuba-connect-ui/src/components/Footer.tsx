@@ -77,7 +77,7 @@ export const Footer = () => {
         </div>
 
         <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 Reservate Cuba. Todos los derechos reservados.</p>
+          <p>&copy; 2026 Reservate Cuba. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>
