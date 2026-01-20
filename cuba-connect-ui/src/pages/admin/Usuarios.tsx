@@ -160,7 +160,12 @@ const Usuarios = () => {
                       <td className="px-6 py-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={updating === usuario.id}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              disabled={updating === usuario.id}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {updating === usuario.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
@@ -168,24 +173,33 @@ const Usuarios = () => {
                               )}
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                             {usuario.rol !== "cliente" && (
                               <DropdownMenuItem
-                                onClick={() => handleUpdateRole(usuario.id, "cliente")}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateRole(usuario.id, "cliente");
+                                }}
                               >
                                 Cambiar a Cliente
                               </DropdownMenuItem>
                             )}
                             {usuario.rol !== "empresa" && (
                               <DropdownMenuItem
-                                onClick={() => handleUpdateRole(usuario.id, "empresa")}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateRole(usuario.id, "empresa");
+                                }}
                               >
                                 Cambiar a Empresa
                               </DropdownMenuItem>
                             )}
                             {usuario.rol !== "admin" && (
                               <DropdownMenuItem
-                                onClick={() => handleUpdateRole(usuario.id, "admin")}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateRole(usuario.id, "admin");
+                                }}
                               >
                                 Cambiar a Admin
                               </DropdownMenuItem>

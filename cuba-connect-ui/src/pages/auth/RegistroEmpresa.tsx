@@ -36,11 +36,21 @@ const RegistroEmpresa = () => {
           api.ciudades.getAll(),
           api.categorias.getAll(),
         ]);
-        setCiudades(ciudadesRes.data || []);
-        setCategorias(categoriasRes.data || []);
-      } catch (error) {
+        if (ciudadesRes && ciudadesRes.data && Array.isArray(ciudadesRes.data)) {
+          setCiudades(ciudadesRes.data);
+        } else {
+          setCiudades([]);
+        }
+        if (categoriasRes && categoriasRes.data && Array.isArray(categoriasRes.data)) {
+          setCategorias(categoriasRes.data);
+        } else {
+          setCategorias([]);
+        }
+      } catch (error: any) {
         console.error('Error fetching data:', error);
-        toast.error("Error al cargar datos");
+        toast.error(error.message || "Error al cargar datos. Puedes continuar sin seleccionar.");
+        setCiudades([]);
+        setCategorias([]);
       } finally {
         setLoadingData(false);
       }
@@ -115,41 +125,59 @@ const RegistroEmpresa = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="categoria">Categoría</Label>
-                      <select
-                        id="categoria"
-                        name="categoria"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={formData.categoria}
-                        onChange={handleChange}
-                        disabled={loadingData}
-                      >
-                        <option value="">{loadingData ? "Cargando..." : "Selecciona (opcional)"}</option>
-                        {categorias.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.nombre}
-                          </option>
-                        ))}
-                      </select>
+                      {loadingData ? (
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                          Cargando categorías...
+                        </div>
+                      ) : categorias.length === 0 ? (
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                          No hay categorías disponibles (opcional)
+                        </div>
+                      ) : (
+                        <select
+                          id="categoria"
+                          name="categoria"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={formData.categoria}
+                          onChange={handleChange}
+                        >
+                          <option value="">Selecciona (opcional)</option>
+                          {categorias.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <p className="text-xs text-muted-foreground">Puedes agregar la categoría después del registro</p>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="ciudad">Ciudad</Label>
-                      <select
-                        id="ciudad"
-                        name="ciudad"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={formData.ciudad}
-                        onChange={handleChange}
-                        disabled={loadingData}
-                      >
-                        <option value="">{loadingData ? "Cargando..." : "Selecciona (opcional)"}</option>
-                        {ciudades.map((ciudad) => (
-                          <option key={ciudad.id} value={ciudad.nombre}>
-                            {ciudad.nombre}
-                          </option>
-                        ))}
-                      </select>
+                      {loadingData ? (
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                          Cargando ciudades...
+                        </div>
+                      ) : ciudades.length === 0 ? (
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                          No hay ciudades disponibles (opcional)
+                        </div>
+                      ) : (
+                        <select
+                          id="ciudad"
+                          name="ciudad"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={formData.ciudad}
+                          onChange={handleChange}
+                        >
+                          <option value="">Selecciona (opcional)</option>
+                          {ciudades.map((ciudad) => (
+                            <option key={ciudad.id} value={ciudad.nombre}>
+                              {ciudad.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
 

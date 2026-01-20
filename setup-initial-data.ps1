@@ -1,9 +1,22 @@
 # Script para limpiar datos mock y crear categorías y ciudades iniciales
-param([string]$Domain = "https://app.reservate.tech")
+# Uso: .\setup-initial-data.ps1 -Domain "https://app.reservate.tech" -AdminEmail "admin@reservatecuba.com" -AdminPassword "tu-contraseña"
+param(
+    [string]$Domain = "https://app.reservate.tech",
+    [string]$AdminEmail = "",
+    [string]$AdminPassword = ""
+)
+
+if ([string]::IsNullOrEmpty($AdminEmail)) {
+    $AdminEmail = Read-Host "Ingresa el email del administrador"
+}
+
+if ([string]::IsNullOrEmpty($AdminPassword)) {
+    $securePassword = Read-Host "Ingresa la contraseña del administrador" -AsSecureString
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+    $AdminPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+}
 
 $API_URL = "$Domain/api"
-$AdminEmail = "admin@reservatecuba.com"
-$AdminPassword = "Admin123!@#"
 
 Write-Host "🚀 Configurando datos iniciales..." -ForegroundColor Cyan
 Write-Host "📡 URL: $API_URL" -ForegroundColor Gray

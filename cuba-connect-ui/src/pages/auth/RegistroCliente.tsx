@@ -29,10 +29,16 @@ const RegistroCliente = () => {
     const fetchCiudades = async () => {
       try {
         const response = await api.ciudades.getAll();
-        setCiudades(response.data || []);
-      } catch (error) {
+        if (response && response.data && Array.isArray(response.data)) {
+          setCiudades(response.data);
+        } else {
+          console.warn('Respuesta de ciudades no válida:', response);
+          setCiudades([]);
+        }
+      } catch (error: any) {
         console.error('Error fetching ciudades:', error);
-        toast.error("Error al cargar ciudades");
+        toast.error(error.message || "Error al cargar ciudades. Puedes continuar sin seleccionar una ciudad.");
+        setCiudades([]);
       } finally {
         setLoadingCiudades(false);
       }
@@ -140,21 +146,30 @@ const RegistroCliente = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="ciudad">Ciudad</Label>
-                  <select
-                    id="ciudad"
-                    name="ciudad"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={formData.ciudad}
-                    onChange={handleChange}
-                    disabled={loadingCiudades}
-                  >
-                    <option value="">{loadingCiudades ? "Cargando..." : "Selecciona (opcional)"}</option>
-                    {ciudades.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.nombre}>
-                        {ciudad.nombre}
-                      </option>
-                    ))}
-                  </select>
+                  {loadingCiudades ? (
+                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                      Cargando ciudades...
+                    </div>
+                  ) : ciudades.length === 0 ? (
+                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                      No hay ciudades disponibles (opcional)
+                    </div>
+                  ) : (
+                    <select
+                      id="ciudad"
+                      name="ciudad"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={formData.ciudad}
+                      onChange={handleChange}
+                    >
+                      <option value="">Selecciona (opcional)</option>
+                      {ciudades.map((ciudad) => (
+                        <option key={ciudad.id} value={ciudad.nombre}>
+                          {ciudad.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
