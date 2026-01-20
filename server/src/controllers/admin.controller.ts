@@ -160,3 +160,48 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
   });
 };
 
+export const cleanMockData = async (req: AuthRequest, res: Response) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  const adminEmail = 'admin@reservatecuba.com';
+  
+  // Eliminar todos los usuarios excepto el admin
+  const deletedUsers = await prisma.user.deleteMany({
+    where: {
+      email: {
+        not: adminEmail,
+      },
+    },
+  });
+
+  // Eliminar todos los negocios
+  const deletedNegocios = await prisma.negocio.deleteMany({});
+
+  // Eliminar todas las reservas
+  const deletedReservas = await prisma.reserva.deleteMany({});
+
+  // Eliminar todos los chats
+  const deletedChats = await prisma.chat.deleteMany({});
+
+  // Eliminar todas las reseñas
+  const deletedResenas = await prisma.resena.deleteMany({});
+
+  // Eliminar todos los favoritos
+  const deletedFavoritos = await prisma.favorito.deleteMany({});
+
+  res.json({
+    success: true,
+    message: 'Datos mock eliminados correctamente',
+    data: {
+      usuariosEliminados: deletedUsers.count,
+      negociosEliminados: deletedNegocios.count,
+      reservasEliminadas: deletedReservas.count,
+      chatsEliminados: deletedChats.count,
+      resenasEliminadas: deletedResenas.count,
+      favoritosEliminados: deletedFavoritos.count,
+    },
+  });
+};
+

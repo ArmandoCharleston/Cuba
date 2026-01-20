@@ -10,9 +10,15 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
-  "keywords": ["express", "typescript", "prisma", "api"],
+  "keywords": [
+    "express",
+    "typescript",
+    "prisma",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -32,9 +38,11 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.12",
     "prisma": "^5.20.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
-
-
