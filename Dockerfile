@@ -51,12 +51,16 @@ WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
 
 # Copiar schema de Prisma y migraciones antes de generar el cliente
-# Copiar explícitamente el schema y las migraciones para asegurar que se incluyan
-COPY --from=build /app/server/prisma/schema.prisma ./prisma/schema.prisma
-COPY --from=build /app/server/prisma/migrations ./prisma/migrations
+# Crear el directorio prisma primero
+RUN mkdir -p prisma
+
+# Copiar todo el directorio prisma completo desde el build stage
+COPY --from=build /app/server/prisma/ ./prisma/
 
 # Verificar que el schema y las migraciones existen (para debugging)
-RUN ls -la prisma/ && echo "--- Migrations directory ---" && ls -la prisma/migrations/ && ls -la prisma/migrations/20260120124313_init/ || echo "Prisma directory or migrations not found"
+RUN echo "=== Prisma directory ===" && ls -la prisma/ && \
+    echo "=== Migrations directory ===" && ls -la prisma/migrations/ && \
+    echo "=== Migration init directory ===" && ls -la prisma/migrations/20260120124313_init/ || echo "Some files not found"
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
