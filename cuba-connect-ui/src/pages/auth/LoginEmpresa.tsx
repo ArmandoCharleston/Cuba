@@ -22,7 +22,7 @@ const LoginEmpresa = () => {
     }
     try {
       setLoading(true);
-      await login(email, password);
+      await login(email, password, 'empresa');
       toast.success("Inicio de sesión exitoso");
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");

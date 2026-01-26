@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
+import { JWT_SECRET, config } from '../config/env';
 
 export interface TokenPayload {
   id: number;
@@ -10,7 +10,7 @@ export interface TokenPayload {
 export const generateToken = (payload: TokenPayload): string => {
   return jwt.sign(
     payload,
-    config.jwt.secret,
+    JWT_SECRET,
     {
       expiresIn: config.jwt.expiresIn,
     } as jwt.SignOptions
@@ -18,8 +18,7 @@ export const generateToken = (payload: TokenPayload): string => {
 };
 
 export const verifyToken = (token: string): TokenPayload => {
-  const secret = config.jwt.secret;
-  return jwt.verify(token, secret) as TokenPayload;
+  return jwt.verify(token, JWT_SECRET) as TokenPayload;
 };
 
 

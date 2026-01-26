@@ -2,25 +2,28 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare } from "lucide-react";
-import { chatsMock } from "@/data/chatsMock";
-import { negociosMock } from "@/data/negociosMock";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function ClienteChat() {
-  // Filtrar chats del cliente actual (mock: usuario 1)
-  const clienteId = "1";
-  const chatsCliente = chatsMock.filter((chat) => chat.clienteId === clienteId);
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getUltimoMensaje = (chatId: string) => {
-    const chat = chatsMock.find((c) => c.id === chatId);
-    if (!chat || chat.mensajes.length === 0) return null;
-    return chat.mensajes[chat.mensajes.length - 1];
-  };
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const response = await api.chats.getAll();
+        setChats(response.data || []);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const getNegocioInfo = (negocioId: string) => {
-    return negociosMock.find((n) => n.id === negocioId);
-  };
+    fetchChats();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -33,7 +36,13 @@ export default function ClienteChat() {
         </div>
       </div>
 
-      {chatsCliente.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <p className="text-muted-foreground">Cargando mensajes...</p>
+          </CardContent>
+        </Card>
+      ) : chats.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
@@ -45,9 +54,11 @@ export default function ClienteChat() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {chatsCliente.map((chat) => {
-            const ultimoMensaje = getUltimoMensaje(chat.id);
-            const negocio = getNegocioInfo(chat.negocioId);
+          {chats.map((chat) => {
+            const ultimoMensaje = chat.mensajes && chat.mensajes.length > 0 
+              ? chat.mensajes[chat.mensajes.length - 1] 
+              : null;
+            const negocio = chat.negocio;
 
             return (
               <Link key={chat.id} to={`/cliente/chat/${chat.id}`}>

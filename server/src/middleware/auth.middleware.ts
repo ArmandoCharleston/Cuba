@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env';
+import { JWT_SECRET } from '../config/env';
 import { AppError } from './errorHandler';
 import prisma from '../config/database';
 
@@ -25,7 +25,7 @@ export const authenticate = async (
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, config.jwt.secret) as {
+    const decoded = jwt.verify(token, JWT_SECRET) as {
       id: number;
       email: string;
       rol: string;

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
+// @ts-ignore - process is available at runtime
 const prisma = new PrismaClient();
 
 async function main() {
@@ -117,10 +118,13 @@ async function main() {
 main()
   .catch((e) => {
     console.error('❌ Error durante el seed:', e);
+    // @ts-ignore - process is available at runtime
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
 
 

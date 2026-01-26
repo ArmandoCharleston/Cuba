@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, expectedRole?: 'cliente' | 'empresa' | 'admin') => Promise<void>;
   register: (data: {
     nombre: string;
     apellido: string;
@@ -64,10 +64,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, expectedRole?: 'cliente' | 'empresa' | 'admin') => {
     try {
       const response = await api.auth.login({ email, password });
       const { user: userData, token: tokenData } = response.data;
+      
+      // Validate role if expected
+      if (expectedRole && userData.rol !== expectedRole) {
+        throw new Error(`Este usuario no tiene acceso como ${expectedRole === 'cliente' ? 'cliente' : 'empresa'}. Por favor, inicia sesión con el tipo de cuenta correcto.`);
+      }
       
       localStorage.setItem('token', tokenData);
       setToken(tokenData);

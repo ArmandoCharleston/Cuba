@@ -2,14 +2,14 @@ import app from './app';
 import { config } from './config/env';
 import prisma from './config/database';
 
-// Usar process.env.PORT directamente (requerido por Dockploy)
-// Convertir a número explícitamente para TypeScript
-const PORT = parseInt(process.env.PORT || String(config.port), 10);
-const HOST = process.env.HOST || '0.0.0.0'; // 0.0.0.0 necesario para Docker
+// Use process.env.PORT with fallback to 4000 (required by Dockploy)
+const PORT = parseInt(process.env.PORT || '4000', 10);
+const HOST = process.env.HOST || '0.0.0.0'; // 0.0.0.0 required for Docker
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${config.nodeEnv}`);
+  console.log(`✅ Server started successfully`);
 });
 
 process.on('SIGTERM', async () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,20 +6,60 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "lucide-react";
 import { toast } from "sonner";
-import { ciudadesMock } from "@/data/ciudadesMock";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 const Perfil = () => {
+  const { user, updateUser } = useAuth();
+  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    nombre: "María",
-    apellido: "González",
-    email: "maria@example.com",
-    telefono: "+53 5 234 5678",
-    ciudad: "1",
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    ciudad: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchCiudades = async () => {
+      try {
+        const response = await api.ciudades.getAll();
+        setCiudades(response.data || []);
+      } catch (error) {
+        console.error('Error fetching ciudades:', error);
+      }
+    };
+
+    fetchCiudades();
+
+    if (user) {
+      setFormData({
+        nombre: user.nombre || "",
+        apellido: user.apellido || "",
+        email: user.email || "",
+        telefono: user.telefono || "",
+        ciudad: user.ciudad || "",
+      });
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Perfil actualizado exitosamente");
+    try {
+      setLoading(true);
+      await updateUser({
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        telefono: formData.telefono,
+        ciudad: formData.ciudad,
+      });
+      toast.success("Perfil actualizado exitosamente");
+    } catch (error: any) {
+      toast.error(error.message || "Error al actualizar el perfil");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -110,8 +150,9 @@ const Perfil = () => {
                     value={formData.ciudad}
                     onChange={handleChange}
                   >
-                    {ciudadesMock.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.id}>
+                    <option value="">Selecciona una ciudad</option>
+                    {ciudades.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.nombre}>
                         {ciudad.nombre}
                       </option>
                     ))}
@@ -120,10 +161,12 @@ const Perfil = () => {
               </div>
 
               <div className="flex justify-end space-x-4">
-                <Button type="button" variant="outline">
+                <Button type="button" variant="outline" disabled={loading}>
                   Cancelar
                 </Button>
-                <Button type="submit">Guardar Cambios</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
               </div>
             </form>
           </CardContent>

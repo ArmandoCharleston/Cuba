@@ -1,48 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, MapPin } from "lucide-react";
-import { reservasMock } from "@/data/reservasMock";
-import { negociosMock } from "@/data/negociosMock";
-import { serviciosMock } from "@/data/serviciosMock";
-import { ciudadesMock } from "@/data/ciudadesMock";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 const Reservas = () => {
-  const misReservas = reservasMock.filter((r) => r.clienteId === "1");
+  const [reservas, setReservas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
-  const proximas = misReservas.filter((r) => r.estado === "confirmada" || r.estado === "pendiente");
-  const completadas = misReservas.filter((r) => r.estado === "completada");
-  const canceladas = misReservas.filter((r) => r.estado === "cancelada");
+  useEffect(() => {
+    const fetchReservas = async () => {
+      try {
+        const response = await api.reservas.getAll();
+        setReservas(response.data || []);
+      } catch (error) {
+        console.error('Error fetching reservas:', error);
+        setReservas([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const ReservaCard = ({ reserva }: { reserva: typeof misReservas[0] }) => {
-    const negocio = negociosMock.find((n) => n.id === reserva.negocioId);
-    const servicio = serviciosMock.find((s) => s.id === reserva.servicioId);
-    const ciudad = ciudadesMock.find((c) => c.id === negocio?.ciudadId);
+    fetchReservas();
+  }, []);
 
+  const handleCancelar = async (reservaId: string) => {
+    if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
+      return;
+    }
+
+    try {
+      setCancelling(reservaId);
+      await api.reservas.updateEstado(reservaId, 'cancelada');
+      toast.success('Reserva cancelada exitosamente');
+      // Refresh reservas
+      const response = await api.reservas.getAll();
+      setReservas(response.data || []);
+    } catch (error: any) {
+      toast.error(error.message || 'Error al cancelar la reserva');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const proximas = reservas.filter((r) => r.estado === "confirmada" || r.estado === "pendiente");
+  const completadas = reservas.filter((r) => r.estado === "completada");
+  const canceladas = reservas.filter((r) => r.estado === "cancelada");
+
+  const ReservaCard = ({ reserva }: { reserva: any }) => {
     return (
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
             <div className="flex items-center space-x-4">
-              <img
-                src={negocio?.foto}
-                alt={negocio?.nombre}
-                className="h-20 w-20 rounded-lg object-cover"
-              />
+              {reserva.negocio?.foto && (
+                <img
+                  src={reserva.negocio.foto}
+                  alt={reserva.negocio.nombre}
+                  className="h-20 w-20 rounded-lg object-cover"
+                />
+              )}
               <div>
-                <h3 className="text-lg font-semibold">{negocio?.nombre}</h3>
-                <p className="text-sm text-muted-foreground">{servicio?.nombre}</p>
+                <h3 className="text-lg font-semibold">{reserva.negocio?.nombre || 'Negocio'}</h3>
+                <p className="text-sm text-muted-foreground">{reserva.servicio?.nombre || 'Servicio'}</p>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   <div className="flex items-center">
                     <Clock size={14} className="mr-1" />
                     {new Date(reserva.fecha).toLocaleDateString()} - {reserva.hora}
                   </div>
-                  <div className="flex items-center">
-                    <MapPin size={14} className="mr-1" />
-                    {ciudad?.nombre}
-                  </div>
+                  {reserva.negocio?.ciudad && (
+                    <div className="flex items-center">
+                      <MapPin size={14} className="mr-1" />
+                      {reserva.negocio.ciudad}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -54,15 +89,22 @@ const Reservas = () => {
                     ? "default"
                     : reserva.estado === "completada"
                     ? "secondary"
+                    : reserva.estado === "cancelada"
+                    ? "destructive"
                     : "outline"
                 }
               >
                 {reserva.estado}
               </Badge>
               <p className="text-lg font-semibold">${reserva.precioTotal}</p>
-              {reserva.estado === "confirmada" && (
-                <Button variant="outline" size="sm">
-                  Cancelar
+              {(reserva.estado === "confirmada" || reserva.estado === "pendiente") && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleCancelar(reserva.id.toString())}
+                  disabled={cancelling === reserva.id.toString()}
+                >
+                  {cancelling === reserva.id.toString() ? "Cancelando..." : "Cancelar"}
                 </Button>
               )}
             </div>
@@ -79,7 +121,14 @@ const Reservas = () => {
         <p className="text-muted-foreground">Gestiona todas tus reservas</p>
       </div>
 
-      <Tabs defaultValue="proximas" className="space-y-6">
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Cargando reservas...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="proximas" className="space-y-6">
         <TabsList>
           <TabsTrigger value="proximas">Próximas ({proximas.length})</TabsTrigger>
           <TabsTrigger value="completadas">Completadas ({completadas.length})</TabsTrigger>
@@ -122,6 +171,7 @@ const Reservas = () => {
           )}
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 };
