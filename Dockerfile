@@ -27,7 +27,7 @@ RUN npm ci --ignore-scripts
 RUN echo "=== Verificando migraciones en build stage ===" && \
     ls -la prisma/ && \
     ls -la prisma/migrations/ && \
-    ls -la prisma/migrations/20260120124313_init/ || echo "Migraciones no encontradas en build stage"
+    find prisma/migrations -type d -name "*_init" | head -1 | xargs -I {} ls -la {} || echo "Migraciones no encontradas en build stage"
 
 # Generar Prisma Client antes de compilar
 RUN npx prisma generate
@@ -57,25 +57,20 @@ WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
 
 # Copiar schema de Prisma y migraciones antes de generar el cliente
-# Crear estructura de directorios primero
-RUN mkdir -p prisma/migrations/20260120124313_init
-
-# Copiar schema y migraciones explícitamente
+# Copiar schema y todas las migraciones dinámicamente
 COPY server/prisma/schema.prisma ./prisma/schema.prisma
-COPY server/prisma/migrations/migration_lock.toml ./prisma/migrations/migration_lock.toml
-COPY server/prisma/migrations/20260120124313_init/migration.sql ./prisma/migrations/20260120124313_init/migration.sql
+COPY server/prisma/migrations/ ./prisma/migrations/
 
 # Asegurar permisos correctos en los archivos de migración
-RUN chmod -R 644 prisma/migrations/20260120124313_init/migration.sql && \
-    chmod 755 prisma/migrations/20260120124313_init
+RUN chmod -R 644 prisma/migrations/*/migration.sql 2>/dev/null || true && \
+    find prisma/migrations -type d -exec chmod 755 {} \;
 
 # Verificar que el schema y las migraciones existen (para debugging)
 RUN echo "=== Prisma directory ===" && ls -la prisma/ && \
     echo "=== Migrations directory ===" && ls -la prisma/migrations/ && \
-    echo "=== Migration init directory ===" && ls -la prisma/migrations/20260120124313_init/ && \
-    echo "=== Migration SQL file exists ===" && test -f prisma/migrations/20260120124313_init/migration.sql && echo "✅ migration.sql found" || echo "❌ migration.sql NOT found" && \
-    echo "=== Migration SQL file size ===" && ls -lh prisma/migrations/20260120124313_init/migration.sql && \
-    echo "=== File permissions ===" && stat prisma/migrations/20260120124313_init/migration.sql || echo "File not found"
+    echo "=== Migration directories ===" && find prisma/migrations -type d -name "*_init" && \
+    echo "=== Migration SQL files ===" && find prisma/migrations -name "migration.sql" && \
+    echo "=== Migration lock file ===" && test -f prisma/migrations/migration_lock.toml && echo "✅ migration_lock.toml found" || echo "❌ migration_lock.toml NOT found"
 
 # Generar Prisma Client en producción
 RUN npx prisma generate
