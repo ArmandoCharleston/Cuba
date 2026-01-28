@@ -37,14 +37,7 @@ ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_provinciaId_fkey` 
 -- AddForeignKey
 ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_municipioId_fkey` FOREIGN KEY (`municipioId`) REFERENCES `municipios`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Update existing negocios to have default provincia/municipio if they exist
--- This is a temporary fix - in production you should migrate existing data properly
-UPDATE `negocios` 
-SET `provinciaId` = (SELECT id FROM `provincias` LIMIT 1),
-    `municipioId` = (SELECT id FROM `municipios` LIMIT 1)
-WHERE `provinciaId` IS NULL OR `municipioId` IS NULL;
-
--- Make columns NOT NULL after setting defaults
-ALTER TABLE `negocios` MODIFY COLUMN `provinciaId` INTEGER NOT NULL;
-ALTER TABLE `negocios` MODIFY COLUMN `municipioId` INTEGER NOT NULL;
+-- Note: provinciaId and municipioId are nullable initially
+-- The seed script will populate provincias/municipios and then you can update negocios
+-- For now, we'll make them nullable to allow the migration to succeed
 
