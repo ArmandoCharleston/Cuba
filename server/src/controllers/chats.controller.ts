@@ -198,13 +198,18 @@ export const createChat = async (req: AuthRequest, res: Response) => {
   if (!chatType) {
     if (req.user.rol === 'cliente' && empresaId) {
       chatType = 'cliente-empresa';
-    } else if (req.user.rol === 'empresa' && adminId) {
-      chatType = 'empresa-admin';
+    } else if (req.user.rol === 'empresa') {
+      chatType = 'empresa-admin'; // Para empresas, siempre es con admin
     } else if (req.user.rol === 'cliente' && adminId) {
       chatType = 'cliente-admin';
     } else {
       throw new AppError('Tipo de chat no válido', 400);
     }
+  }
+  
+  // Validar que los campos requeridos estén presentes
+  if (chatType === 'cliente-empresa' && !empresaId) {
+    throw new AppError('empresaId es requerido para chats cliente-empresa', 400);
   }
 
   // Buscar chat existente y obtener adminId si es necesario
@@ -267,6 +272,9 @@ export const createChat = async (req: AuthRequest, res: Response) => {
   };
 
   if (chatType === 'cliente-empresa') {
+    if (!empresaId) {
+      throw new AppError('empresaId es requerido para chats cliente-empresa', 400);
+    }
     chatData.clienteId = req.user.id;
     chatData.empresaId = parseInt(empresaId);
     if (negocioId) chatData.negocioId = parseInt(negocioId);
