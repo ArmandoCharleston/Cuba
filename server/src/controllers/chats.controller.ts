@@ -11,9 +11,21 @@ export const getChats = async (req: AuthRequest, res: Response) => {
   const where: any = {};
 
   if (req.user.rol === 'cliente') {
-    where.clienteId = req.user.id;
+    where.OR = [
+      { clienteId: req.user.id },
+      { tipo: 'cliente-admin', clienteId: req.user.id },
+    ];
   } else if (req.user.rol === 'empresa') {
-    where.empresaId = req.user.id;
+    where.OR = [
+      { empresaId: req.user.id },
+      { tipo: 'empresa-admin', empresaId: req.user.id },
+    ];
+  } else if (req.user.rol === 'admin') {
+    where.OR = [
+      { adminId: req.user.id },
+      { tipo: 'cliente-admin' },
+      { tipo: 'empresa-admin' },
+    ];
   }
 
   const chats = await prisma.chat.findMany({
@@ -28,6 +40,14 @@ export const getChats = async (req: AuthRequest, res: Response) => {
         },
       },
       empresa: {
+        select: {
+          id: true,
+          nombre: true,
+          apellido: true,
+          avatar: true,
+        },
+      },
+      admin: {
         select: {
           id: true,
           nombre: true,
@@ -82,6 +102,14 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
           avatar: true,
         },
       },
+      admin: {
+        select: {
+          id: true,
+          nombre: true,
+          apellido: true,
+          avatar: true,
+        },
+      },
       negocio: {
         select: {
           id: true,
@@ -99,11 +127,14 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
     throw new AppError('Chat not found', 404);
   }
 
-  if (
-    chat.clienteId !== req.user.id &&
-    chat.empresaId !== req.user.id &&
-    req.user.rol !== 'admin'
-  ) {
+  // Verificar autorización según el tipo de chat
+  const isAuthorized =
+    (chat.clienteId === req.user.id) ||
+    (chat.empresaId === req.user.id) ||
+    (chat.adminId === req.user.id) ||
+    (req.user.rol === 'admin');
+
+  if (!isAuthorized) {
     throw new AppError('Not authorized', 403);
   }
 
@@ -112,7 +143,7 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
     await prisma.mensaje.updateMany({
       where: {
         chatId: chat.id,
-        remitente: 'empresa',
+        remitente: { in: ['empresa', 'admin'] },
         leido: false,
       },
       data: { leido: true },
@@ -125,7 +156,7 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
     await prisma.mensaje.updateMany({
       where: {
         chatId: chat.id,
-        remitente: 'cliente',
+        remitente: { in: ['cliente', 'admin'] },
         leido: false,
       },
       data: { leido: true },
@@ -133,6 +164,19 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
     await prisma.chat.update({
       where: { id: chat.id },
       data: { noLeidosEmpresa: 0 },
+    });
+  } else if (req.user.rol === 'admin') {
+    await prisma.mensaje.updateMany({
+      where: {
+        chatId: chat.id,
+        remitente: { in: ['cliente', 'empresa'] },
+        leido: false,
+      },
+      data: { leido: true },
+    });
+    await prisma.chat.update({
+      where: { id: chat.id },
+      data: { noLeidosAdmin: 0 },
     });
   }
 
@@ -143,19 +187,54 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
 };
 
 export const createChat = async (req: AuthRequest, res: Response) => {
-  if (!req.user || req.user.rol !== 'cliente') {
-    throw new AppError('Only clientes can create chats', 403);
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
   }
 
-  const { empresaId, negocioId } = req.body;
+  const { empresaId, negocioId, adminId, tipo } = req.body;
 
-  const existingChat = await prisma.chat.findFirst({
-    where: {
-      clienteId: req.user.id,
-      empresaId: parseInt(empresaId),
-      negocioId: parseInt(negocioId),
-    },
-  });
+  // Determinar tipo de chat si no se especifica
+  let chatType = tipo;
+  if (!chatType) {
+    if (req.user.rol === 'cliente' && empresaId) {
+      chatType = 'cliente-empresa';
+    } else if (req.user.rol === 'empresa' && adminId) {
+      chatType = 'empresa-admin';
+    } else if (req.user.rol === 'cliente' && adminId) {
+      chatType = 'cliente-admin';
+    } else {
+      throw new AppError('Tipo de chat no válido', 400);
+    }
+  }
+
+  // Buscar chat existente
+  let existingChat;
+  if (chatType === 'cliente-empresa') {
+    existingChat = await prisma.chat.findFirst({
+      where: {
+        clienteId: req.user.id,
+        empresaId: parseInt(empresaId),
+        negocioId: negocioId ? parseInt(negocioId) : undefined,
+        tipo: 'cliente-empresa',
+      },
+    });
+  } else if (chatType === 'empresa-admin') {
+    existingChat = await prisma.chat.findFirst({
+      where: {
+        empresaId: req.user.id,
+        adminId: parseInt(adminId),
+        tipo: 'empresa-admin',
+      },
+    });
+  } else if (chatType === 'cliente-admin') {
+    existingChat = await prisma.chat.findFirst({
+      where: {
+        clienteId: req.user.id,
+        adminId: parseInt(adminId),
+        tipo: 'cliente-admin',
+      },
+    });
+  }
 
   if (existingChat) {
     return res.json({
@@ -164,15 +243,29 @@ export const createChat = async (req: AuthRequest, res: Response) => {
     });
   }
 
+  // Crear nuevo chat
+  const chatData: any = {
+    tipo: chatType,
+  };
+
+  if (chatType === 'cliente-empresa') {
+    chatData.clienteId = req.user.id;
+    chatData.empresaId = parseInt(empresaId);
+    if (negocioId) chatData.negocioId = parseInt(negocioId);
+  } else if (chatType === 'empresa-admin') {
+    chatData.empresaId = req.user.id;
+    chatData.adminId = parseInt(adminId);
+  } else if (chatType === 'cliente-admin') {
+    chatData.clienteId = req.user.id;
+    chatData.adminId = parseInt(adminId);
+  }
+
   const chat = await prisma.chat.create({
-    data: {
-      clienteId: req.user.id,
-      empresaId: parseInt(empresaId),
-      negocioId: parseInt(negocioId),
-    },
+    data: chatData,
     include: {
       cliente: true,
       empresa: true,
+      admin: true,
       negocio: true,
     },
   });
@@ -199,15 +292,24 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     throw new AppError('Chat not found', 404);
   }
 
-  if (
-    chat.clienteId !== req.user.id &&
-    chat.empresaId !== req.user.id &&
-    req.user.rol !== 'admin'
-  ) {
+  // Verificar autorización
+  const isAuthorized =
+    (chat.clienteId === req.user.id) ||
+    (chat.empresaId === req.user.id) ||
+    (chat.adminId === req.user.id) ||
+    (req.user.rol === 'admin');
+
+  if (!isAuthorized) {
     throw new AppError('Not authorized', 403);
   }
 
-  const remitente = req.user.rol === 'cliente' ? 'cliente' : 'empresa';
+  // Determinar remitente
+  let remitente = 'cliente';
+  if (req.user.rol === 'empresa') {
+    remitente = 'empresa';
+  } else if (req.user.rol === 'admin') {
+    remitente = 'admin';
+  }
 
   const mensaje = await prisma.mensaje.create({
     data: {
@@ -218,22 +320,61 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     },
   });
 
-  if (remitente === 'cliente') {
-    await prisma.chat.update({
-      where: { id: chat.id },
-      data: {
-        noLeidosEmpresa: { increment: 1 },
-        updatedAt: new Date(),
-      },
-    });
-  } else {
-    await prisma.chat.update({
-      where: { id: chat.id },
-      data: {
-        noLeidosCliente: { increment: 1 },
-        updatedAt: new Date(),
-      },
-    });
+  // Actualizar contadores de no leídos según el tipo de chat
+  if (chat.tipo === 'cliente-empresa') {
+    if (remitente === 'cliente') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosEmpresa: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    } else if (remitente === 'empresa') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosCliente: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    }
+  } else if (chat.tipo === 'empresa-admin') {
+    if (remitente === 'empresa') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosAdmin: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    } else if (remitente === 'admin') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosEmpresa: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    }
+  } else if (chat.tipo === 'cliente-admin') {
+    if (remitente === 'cliente') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosAdmin: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    } else if (remitente === 'admin') {
+      await prisma.chat.update({
+        where: { id: chat.id },
+        data: {
+          noLeidosCliente: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
+    }
   }
 
   res.status(201).json({

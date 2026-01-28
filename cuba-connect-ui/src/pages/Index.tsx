@@ -9,27 +9,27 @@ import * as LucideIcons from "lucide-react";
 
 const Index = () => {
   const [categorias, setCategorias] = useState<any[]>([]);
-  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
   const [featuredBusinesses, setFeaturedBusinesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriasRes, ciudadesRes, negociosRes] = await Promise.all([
+        const [categoriasRes, provinciasRes, negociosRes] = await Promise.all([
           api.categorias.getAll(),
-          api.ciudades.getAll(),
+          api.provincias.getAll(),
           api.negocios.getAll({ limit: 3 }),
         ]);
         
         setCategorias(categoriasRes.data || []);
-        setCiudades(ciudadesRes.data || []);
+        setProvincias(provinciasRes.data || []);
         setFeaturedBusinesses(negociosRes.data?.slice(0, 3) || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         // Si hay error, dejar arrays vacíos para que no se muestre nada
         setCategorias([]);
-        setCiudades([]);
+        setProvincias([]);
         setFeaturedBusinesses([]);
       } finally {
         setLoading(false);
@@ -67,10 +67,10 @@ const Index = () => {
                     <div className="flex flex-1 items-center space-x-2 rounded-md border border-input bg-background px-3">
                       <MapPin size={20} className="text-muted-foreground" />
                       <select className="w-full border-0 bg-transparent py-2 text-sm focus:outline-none">
-                        <option>Selecciona ciudad</option>
-                        {ciudades.map((ciudad) => (
-                          <option key={ciudad.id} value={ciudad.id}>
-                            {ciudad.nombre}
+                        <option>Selecciona provincia</option>
+                        {provincias.map((provincia) => (
+                          <option key={provincia.id} value={provincia.id}>
+                            {provincia.nombre}
                           </option>
                         ))}
                       </select>

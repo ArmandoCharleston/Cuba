@@ -17,6 +17,8 @@ import chatsRoutes from './routes/chats.routes';
 import resenasRoutes from './routes/resenas.routes';
 import favoritosRoutes from './routes/favoritos.routes';
 import ciudadesRoutes from './routes/ciudades.routes';
+import provinciasRoutes from './routes/provincias.routes';
+import municipiosRoutes from './routes/municipios.routes';
 import adminRoutes from './routes/admin.routes';
 
 const app: Express = express();
@@ -50,6 +52,8 @@ app.use('/api/chats', chatsRoutes);
 app.use('/api/resenas', resenasRoutes);
 app.use('/api/favoritos', favoritosRoutes);
 app.use('/api/ciudades', ciudadesRoutes);
+app.use('/api/provincias', provinciasRoutes);
+app.use('/api/municipios', municipiosRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Servir archivos estáticos del frontend (SOLO en producción)

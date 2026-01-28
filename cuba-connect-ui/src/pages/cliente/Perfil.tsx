@@ -20,6 +20,8 @@ const Perfil = () => {
     telefono: "",
     ciudad: "",
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchCiudades = async () => {
@@ -41,6 +43,9 @@ const Perfil = () => {
         telefono: user.telefono || "",
         ciudad: user.ciudad || "",
       });
+      if (user.avatar) {
+        setAvatarPreview(user.avatar);
+      }
     }
   }, [user]);
 
@@ -48,17 +53,44 @@ const Perfil = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      let avatarBase64 = null;
+      if (avatarFile) {
+        const reader = new FileReader();
+        avatarBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(avatarFile);
+        });
+      }
       await updateUser({
         nombre: formData.nombre,
         apellido: formData.apellido,
         telefono: formData.telefono,
         ciudad: formData.ciudad,
+        avatar: avatarBase64 || avatarPreview || undefined,
       });
       toast.success("Perfil actualizado exitosamente");
+      setAvatarFile(null);
     } catch (error: any) {
       toast.error(error.message || "Error al actualizar el perfil");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("La imagen no puede ser mayor a 2MB");
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -76,18 +108,37 @@ const Perfil = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardContent className="p-6 text-center">
-            <Avatar className="mx-auto mb-4 h-24 w-24">
-              <AvatarFallback className="text-2xl">
-                <User className="h-12 w-12" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative mx-auto mb-4 h-24 w-24">
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="h-24 w-24 rounded-full object-cover"
+                />
+              ) : (
+                <Avatar className="h-24 w-24">
+                  <AvatarFallback className="text-2xl">
+                    <User className="h-12 w-12" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
             <h3 className="mb-1 text-xl font-semibold">
               {formData.nombre} {formData.apellido}
             </h3>
             <p className="mb-4 text-sm text-muted-foreground">{formData.email}</p>
-            <Button variant="outline" className="w-full">
-              Cambiar Foto
-            </Button>
+            <label htmlFor="avatar-upload">
+              <Button variant="outline" className="w-full" asChild>
+                <span>Cambiar Foto</span>
+              </Button>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </label>
           </CardContent>
         </Card>
 

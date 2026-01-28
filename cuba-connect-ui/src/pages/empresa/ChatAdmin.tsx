@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MessageSquare, Shield } from "lucide-react";
 import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function EmpresaChatAdmin() {
   const [chats, setChats] = useState<any[]>([]);
@@ -15,9 +17,8 @@ export default function EmpresaChatAdmin() {
     const fetchChats = async () => {
       try {
         const res = await api.chats.getAll();
-        // Filtrar solo chats con admin (necesitarías un campo especial o filtrar por empresaId y admin)
-        // Por ahora, asumimos que todos los chats son con admin si no tienen clienteId
-        const chatsAdmin = res.data.filter((chat: any) => !chat.clienteId && chat.empresaId);
+        // Filtrar solo chats de tipo empresa-admin
+        const chatsAdmin = res.data.filter((chat: any) => chat.tipo === 'empresa-admin');
         setChats(chatsAdmin || []);
       } catch (error) {
         console.error('Error fetching chats:', error);
@@ -44,6 +45,24 @@ export default function EmpresaChatAdmin() {
             Conversaciones con el equipo de soporte
           </p>
         </div>
+        <Button
+          onClick={async () => {
+            try {
+              // Obtener el admin (asumiendo que hay un admin con id 1 o el primer admin)
+              const adminId = "1"; // TODO: Obtener el ID del admin desde la API
+              const res = await api.chats.create({
+                adminId,
+                tipo: 'empresa-admin',
+              });
+              window.location.href = `/empresa/chat-admin/${res.data.id}`;
+            } catch (error: any) {
+              toast.error(error.message || "Error al crear chat con soporte");
+            }
+          }}
+        >
+          <Shield className="mr-2 h-4 w-4" />
+          Contactar Soporte
+        </Button>
       </div>
 
       {loading ? (

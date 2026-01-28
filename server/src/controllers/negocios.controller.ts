@@ -4,7 +4,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 export const getAllNegocios = async (req: AuthRequest, res: Response) => {
-  const { categoriaId, ciudadId, search } = req.query;
+  const { categoriaId, provinciaId, municipioId, search } = req.query;
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const skip = (page - 1) * limit;
@@ -17,8 +17,12 @@ export const getAllNegocios = async (req: AuthRequest, res: Response) => {
     where.categoriaId = parseInt(categoriaId as string);
   }
 
-  if (ciudadId) {
-    where.ciudadId = parseInt(ciudadId as string);
+  if (provinciaId) {
+    where.provinciaId = parseInt(provinciaId as string);
+  }
+
+  if (municipioId) {
+    where.municipioId = parseInt(municipioId as string);
   }
 
   if (search) {
@@ -33,7 +37,18 @@ export const getAllNegocios = async (req: AuthRequest, res: Response) => {
       where,
       include: {
         categoria: true,
-        ciudad: true,
+        provincia: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
+        municipio: {
+          select: {
+            id: true,
+            nombre: true,
+          },
+        },
         propietario: {
           select: {
             id: true,
@@ -78,7 +93,18 @@ export const getNegocioById = async (req: AuthRequest, res: Response) => {
     where: { id: parseInt(id) },
     include: {
       categoria: true,
-      ciudad: true,
+      provincia: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      municipio: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
       propietario: {
         select: {
           id: true,
@@ -139,11 +165,16 @@ export const createNegocio = async (req: AuthRequest, res: Response) => {
     email,
     descripcion,
     categoriaId,
-    ciudadId,
+    provinciaId,
+    municipioId,
     foto,
     horarios,
     precioPromedio,
   } = req.body;
+
+  if (!provinciaId || !municipioId) {
+    throw new AppError('Provincia y municipio son requeridos', 400);
+  }
 
   const negocio = await prisma.negocio.create({
     data: {
@@ -153,7 +184,8 @@ export const createNegocio = async (req: AuthRequest, res: Response) => {
       email,
       descripcion,
       categoriaId: parseInt(categoriaId),
-      ciudadId: parseInt(ciudadId),
+      provinciaId: parseInt(provinciaId),
+      municipioId: parseInt(municipioId),
       propietarioId: req.user.id,
       foto,
       horarios: horarios || {},
@@ -161,7 +193,18 @@ export const createNegocio = async (req: AuthRequest, res: Response) => {
     },
     include: {
       categoria: true,
-      ciudad: true,
+      provincia: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      municipio: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
     },
   });
 
@@ -195,7 +238,18 @@ export const updateNegocio = async (req: AuthRequest, res: Response) => {
     data: req.body,
     include: {
       categoria: true,
-      ciudad: true,
+      provincia: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      municipio: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
     },
   });
 

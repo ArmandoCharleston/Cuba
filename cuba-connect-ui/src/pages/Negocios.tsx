@@ -8,23 +8,25 @@ import { api } from "@/lib/api";
 
 const Negocios = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedProvincia, setSelectedProvincia] = useState("");
+  const [selectedMunicipio, setSelectedMunicipio] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [negocios, setNegocios] = useState<any[]>([]);
-  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [municipios, setMunicipios] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load ciudades and categorias only once
+  // Load provincias and categorias only once
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [ciudadesRes, categoriasRes] = await Promise.all([
-          api.ciudades.getAll(),
+        const [provinciasRes, categoriasRes] = await Promise.all([
+          api.provincias.getAll(),
           api.categorias.getAll(),
         ]);
-        setCiudades(ciudadesRes.data || []);
+        setProvincias(provinciasRes.data || []);
         setCategorias(categoriasRes.data || []);
       } catch (err: any) {
         console.error('Error fetching static data:', err);
@@ -34,6 +36,26 @@ const Negocios = () => {
     fetchStaticData();
   }, []);
 
+  // Load municipios when provincia is selected
+  useEffect(() => {
+    const fetchMunicipios = async () => {
+      if (selectedProvincia) {
+        try {
+          const municipiosRes = await api.municipios.getAll(selectedProvincia);
+          setMunicipios(municipiosRes.data || []);
+        } catch (err: any) {
+          console.error('Error fetching municipios:', err);
+          setMunicipios([]);
+        }
+      } else {
+        setMunicipios([]);
+        setSelectedMunicipio("");
+      }
+    };
+
+    fetchMunicipios();
+  }, [selectedProvincia]);
+
   // Fetch negocios with debounce for search
   useEffect(() => {
     const fetchNegocios = async () => {
@@ -42,7 +64,8 @@ const Negocios = () => {
         setError(null);
         const negociosRes = await api.negocios.getAll({
           categoriaId: selectedCategory || undefined,
-          ciudadId: selectedCity || undefined,
+          provinciaId: selectedProvincia || undefined,
+          municipioId: selectedMunicipio || undefined,
           search: searchTerm || undefined,
         });
         setNegocios(negociosRes.data || []);
@@ -60,7 +83,7 @@ const Negocios = () => {
     }, searchTerm ? 500 : 0); // 500ms delay for search, immediate for filters
 
     return () => clearTimeout(timeoutId);
-  }, [selectedCategory, selectedCity, searchTerm]);
+  }, [selectedCategory, selectedProvincia, selectedMunicipio, searchTerm]);
 
   // Filtering is now done on the backend, but we can do client-side filtering for search
   const filteredNegocios = negocios.filter((negocio) => {
@@ -86,7 +109,7 @@ const Negocios = () => {
         {/* Filters */}
         <Card className="mb-8 shadow-medium">
           <CardContent className="p-6">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-5">
               <div className="md:col-span-2">
                 <div className="flex items-center space-x-2 rounded-md border border-input bg-background px-3">
                   <Search size={20} className="text-muted-foreground" />
@@ -102,13 +125,32 @@ const Negocios = () => {
               <div>
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
+                  value={selectedProvincia}
+                  onChange={(e) => {
+                    setSelectedProvincia(e.target.value);
+                    setSelectedMunicipio("");
+                  }}
                 >
-                  <option value="">Todas las ciudades</option>
-                  {ciudades.map((ciudad) => (
-                    <option key={ciudad.id} value={ciudad.id}>
-                      {ciudad.nombre}
+                  <option value="">Todas las provincias</option>
+                  {provincias.map((provincia) => (
+                    <option key={provincia.id} value={provincia.id}>
+                      {provincia.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={selectedMunicipio}
+                  onChange={(e) => setSelectedMunicipio(e.target.value)}
+                  disabled={!selectedProvincia}
+                >
+                  <option value="">Todos los municipios</option>
+                  {municipios.map((municipio) => (
+                    <option key={municipio.id} value={municipio.id}>
+                      {municipio.nombre}
                     </option>
                   ))}
                 </select>
@@ -149,7 +191,8 @@ const Negocios = () => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredNegocios.map((negocio) => {
-            const ciudad = negocio.ciudad || ciudades.find((c) => c.id === negocio.ciudadId);
+            const provincia = negocio.provincia;
+            const municipio = negocio.municipio;
             const categoria = negocio.categoria || categorias.find((c) => c.id === negocio.categoriaId);
             const fotoUrl = negocio.foto || (negocio.fotos && negocio.fotos.length > 0 
               ? (typeof negocio.fotos[0] === 'string' ? negocio.fotos[0] : negocio.fotos[0].url)
@@ -178,7 +221,8 @@ const Negocios = () => {
 
                     <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">
                       <MapPin size={14} />
-                      <span>{ciudad?.nombre || 'Ciudad no especificada'}</span>
+                      <span>{municipio?.nombre || 'Municipio no especificado'}</span>
+                      {provincia && <span>, {provincia.nombre}</span>}
                       <span>•</span>
                       <span>{categoria?.nombre || 'Sin categoría'}</span>
                     </div>

@@ -46,6 +46,7 @@ model User {
   reservas     Reserva[]
   chatsCliente Chat[]     @relation("ChatCliente")
   chatsEmpresa Chat[]     @relation("ChatEmpresa")
+  chatsAdmin   Chat[]     @relation("ChatAdmin")
   favoritos    Favorito[]
   resenas      Resena[]
   mensajes     Mensaje[]  @relation("MensajeUsuario")
@@ -66,14 +67,28 @@ model Categoria {
   @@map("categorias")
 }
 
-model Ciudad {
+model Provincia {
   id        Int      @id @default(autoincrement())
   nombre    String   @unique
   createdAt DateTime @default(now())
 
-  negocios Negocio[]
+  municipios Municipio[]
+  negocios   Negocio[]
 
-  @@map("ciudades")
+  @@map("provincias")
+}
+
+model Municipio {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  provinciaId Int
+  createdAt   DateTime @default(now())
+
+  provincia Provincia @relation(fields: [provinciaId], references: [id], onDelete: Cascade)
+  negocios   Negocio[]
+
+  @@unique([nombre, provinciaId])
+  @@map("municipios")
 }
 
 model Negocio {
@@ -85,7 +100,8 @@ model Negocio {
   descripcion    String?       @db.Text
   foto           String?
   categoriaId    Int
-  ciudadId       Int
+  provinciaId    Int
+  municipioId    Int
   propietarioId  Int
   estado         NegocioEstado @default(pendiente)
   calificacion   Float         @default(0)
@@ -96,7 +112,8 @@ model Negocio {
   updatedAt      DateTime      @updatedAt
 
   categoria   Categoria     @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
-  ciudad      Ciudad        @relation(fields: [ciudadId], references: [id], onDelete: Cascade)
+  provincia   Provincia     @relation(fields: [provinciaId], references: [id], onDelete: Cascade)
+  municipio   Municipio     @relation(fields: [municipioId], references: [id], onDelete: Cascade)
   propietario User          @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
   servicios   Servicio[]
   reservas    Reserva[]
@@ -160,20 +177,23 @@ model Reserva {
 
 model Chat {
   id              Int      @id @default(autoincrement())
-  clienteId       Int
-  empresaId       Int
-  negocioId       Int
+  clienteId       Int?
+  empresaId       Int?
+  adminId         Int?
+  negocioId       Int?
+  tipo            String   @default("cliente-empresa") // "cliente-empresa", "empresa-admin", "cliente-admin"
   noLeidosCliente Int      @default(0)
   noLeidosEmpresa Int      @default(0)
+  noLeidosAdmin   Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  cliente  User      @relation("ChatCliente", fields: [clienteId], references: [id], onDelete: Cascade)
-  empresa  User      @relation("ChatEmpresa", fields: [empresaId], references: [id], onDelete: Cascade)
-  negocio  Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  cliente  User?     @relation("ChatCliente", fields: [clienteId], references: [id], onDelete: Cascade)
+  empresa  User?     @relation("ChatEmpresa", fields: [empresaId], references: [id], onDelete: Cascade)
+  admin    User?     @relation("ChatAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  negocio  Negocio?  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
   mensajes Mensaje[]
 
-  @@unique([clienteId, empresaId, negocioId])
   @@map("chats")
 }
 

@@ -232,7 +232,7 @@ const NegocioDetalle = () => {
                   <div className="flex items-center space-x-3">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <span>
-                      {negocio.direccion}, {ciudad?.nombre}
+                      {negocio.direccion}, {negocio.municipio?.nombre || ''}{negocio.provincia?.nombre ? `, ${negocio.provincia.nombre}` : ''}
                     </span>
                   </div>
                 </div>

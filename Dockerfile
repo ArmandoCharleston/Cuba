@@ -56,10 +56,11 @@ COPY server/package*.json ./server/
 WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
 
-# Copiar schema de Prisma y migraciones antes de generar el cliente
+# Copiar schema de Prisma, migraciones y seed antes de generar el cliente
 # Copiar schema y todas las migraciones dinámicamente
 COPY server/prisma/schema.prisma ./prisma/schema.prisma
 COPY server/prisma/migrations/ ./prisma/migrations/
+COPY server/prisma/seed.ts ./prisma/seed.ts
 
 # Asegurar permisos correctos en los archivos de migración
 RUN chmod -R 644 prisma/migrations/*/migration.sql 2>/dev/null || true && \
@@ -98,5 +99,8 @@ CMD ["sh", "-c", "echo '=== Intentando aplicar migraciones ===' && \
    (echo '⚠️ migrate deploy falló, usando db push para sincronizar schema...' && \
     npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss)) && \
   echo '✅ Base de datos sincronizada' && \
+  echo '=== Ejecutando seed ===' && \
+  (npm run prisma:seed:prod || npx ts-node prisma/seed.ts || echo '⚠️ Seed falló, continuando...') && \
+  echo '✅ Seed completado' && \
   node dist/server.js"]
 

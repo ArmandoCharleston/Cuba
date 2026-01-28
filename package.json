@@ -10,7 +10,7 @@
     "build": "npm run build:server && npm run build:client",
     "build:server": "cd server && npm run build",
     "build:client": "cd cuba-connect-ui && npm run build",
-    "start": "cd server && npx prisma generate && npx prisma migrate deploy && node dist/server.js",
+    "start": "cd server && npx prisma generate && npx prisma migrate deploy && npm run prisma:seed && node dist/server.js",
     "install:all": "npm install && cd server && npm install && cd ../cuba-connect-ui && npm install",
     "prisma:generate": "cd server && npm run prisma:generate",
     "prisma:migrate": "cd server && npm run prisma:migrate"

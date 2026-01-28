@@ -17,29 +17,33 @@ const RegistroEmpresa = () => {
     apellidoContacto: "",
     email: "",
     telefono: "",
-    ciudad: "",
+    provincia: "",
+    municipio: "",
     categoria: "",
     direccion: "",
     password: "",
     confirmPassword: "",
   });
 
-  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [municipios, setMunicipios] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ciudadesRes, categoriasRes] = await Promise.all([
-          api.ciudades.getAll(),
+        const [provinciasRes, categoriasRes] = await Promise.all([
+          api.provincias.getAll(),
           api.categorias.getAll(),
         ]);
-        if (ciudadesRes && ciudadesRes.data && Array.isArray(ciudadesRes.data)) {
-          setCiudades(ciudadesRes.data);
+        if (provinciasRes && provinciasRes.data && Array.isArray(provinciasRes.data)) {
+          setProvincias(provinciasRes.data);
         } else {
-          setCiudades([]);
+          setProvincias([]);
         }
         if (categoriasRes && categoriasRes.data && Array.isArray(categoriasRes.data)) {
           setCategorias(categoriasRes.data);
@@ -49,7 +53,7 @@ const RegistroEmpresa = () => {
       } catch (error: any) {
         console.error('Error fetching data:', error);
         toast.error(error.message || "Error al cargar datos. Puedes continuar sin seleccionar.");
-        setCiudades([]);
+        setProvincias([]);
         setCategorias([]);
       } finally {
         setLoadingData(false);
@@ -57,6 +61,28 @@ const RegistroEmpresa = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchMunicipios = async () => {
+      if (formData.provincia) {
+        try {
+          const municipiosRes = await api.municipios.getAll(formData.provincia);
+          if (municipiosRes && municipiosRes.data && Array.isArray(municipiosRes.data)) {
+            setMunicipios(municipiosRes.data);
+          } else {
+            setMunicipios([]);
+          }
+        } catch (error: any) {
+          console.error('Error fetching municipios:', error);
+          setMunicipios([]);
+        }
+      } else {
+        setMunicipios([]);
+        setFormData({ ...formData, municipio: "" });
+      }
+    };
+    fetchMunicipios();
+  }, [formData.provincia]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +112,28 @@ const RegistroEmpresa = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'provincia') {
+      setFormData({ ...formData, [name]: value, municipio: "" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("La imagen no puede ser mayor a 2MB");
+        return;
+      }
+      setFotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -152,32 +199,64 @@ const RegistroEmpresa = () => {
                       <p className="text-xs text-muted-foreground">Puedes agregar la categoría después del registro</p>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ciudad">Ciudad</Label>
-                      {loadingData ? (
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                          Cargando ciudades...
-                        </div>
-                      ) : ciudades.length === 0 ? (
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                          No hay ciudades disponibles (opcional)
-                        </div>
-                      ) : (
-                        <select
-                          id="ciudad"
-                          name="ciudad"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={formData.ciudad}
-                          onChange={handleChange}
-                        >
-                          <option value="">Selecciona (opcional)</option>
-                          {ciudades.map((ciudad) => (
-                            <option key={ciudad.id} value={ciudad.nombre}>
-                              {ciudad.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="provincia">Provincia *</Label>
+                        {loadingData ? (
+                          <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                            Cargando provincias...
+                          </div>
+                        ) : provincias.length === 0 ? (
+                          <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                            No hay provincias disponibles
+                          </div>
+                        ) : (
+                          <select
+                            id="provincia"
+                            name="provincia"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={formData.provincia}
+                            onChange={handleChange}
+                            required
+                          >
+                            <option value="">Selecciona provincia</option>
+                            {provincias.map((provincia) => (
+                              <option key={provincia.id} value={provincia.id}>
+                                {provincia.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="municipio">Municipio *</Label>
+                        {!formData.provincia ? (
+                          <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                            Selecciona primero una provincia
+                          </div>
+                        ) : municipios.length === 0 ? (
+                          <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                            Cargando municipios...
+                          </div>
+                        ) : (
+                          <select
+                            id="municipio"
+                            name="municipio"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={formData.municipio}
+                            onChange={handleChange}
+                            required
+                          >
+                            <option value="">Selecciona municipio</option>
+                            {municipios.map((municipio) => (
+                              <option key={municipio.id} value={municipio.id}>
+                                {municipio.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -194,10 +273,36 @@ const RegistroEmpresa = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="logo">Logo del Negocio</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input id="logo" type="file" accept="image/*" />
-                      <Upload className="h-5 w-5 text-muted-foreground" />
+                    <Label htmlFor="logo">Foto del Negocio</Label>
+                    <div className="space-y-2">
+                      {fotoPreview && (
+                        <div className="relative w-full max-w-xs">
+                          <img
+                            src={fotoPreview}
+                            alt="Preview"
+                            className="h-32 w-full rounded-md object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFotoPreview(null);
+                              setFotoFile(null);
+                            }}
+                            className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="logo"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFotoChange}
+                        />
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">Formato: JPG, PNG. Máx: 2MB</p>
                   </div>

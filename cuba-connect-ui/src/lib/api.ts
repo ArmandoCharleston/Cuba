@@ -177,14 +177,16 @@ export const api = {
   negocios: {
     getAll: async (params?: {
       categoriaId?: string;
-      ciudadId?: string;
+      provinciaId?: string;
+      municipioId?: string;
       search?: string;
       page?: number;
       limit?: number;
     }) => {
       const queryParams = new URLSearchParams();
       if (params?.categoriaId) queryParams.append('categoriaId', params.categoriaId);
-      if (params?.ciudadId) queryParams.append('ciudadId', params.ciudadId);
+      if (params?.provinciaId) queryParams.append('provinciaId', params.provinciaId);
+      if (params?.municipioId) queryParams.append('municipioId', params.municipioId);
       if (params?.search) queryParams.append('search', params.search);
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -206,7 +208,8 @@ export const api = {
       email: string;
       descripcion?: string;
       categoriaId: number;
-      ciudadId: number;
+      provinciaId: number;
+      municipioId: number;
       foto?: string;
       horarios?: any;
       precioPromedio?: number;
@@ -249,10 +252,33 @@ export const api = {
     },
   },
 
-  // Ciudades
+  // Ciudades (mantener para compatibilidad)
   ciudades: {
     getAll: async () => {
       return request<{ success: boolean; data: any[] }>('/ciudades');
+    },
+  },
+
+  // Provincias
+  provincias: {
+    getAll: async () => {
+      return request<{ success: boolean; data: any[] }>('/provincias');
+    },
+
+    getById: async (id: string) => {
+      return request<{ success: boolean; data: any }>(`/provincias/${id}`);
+    },
+  },
+
+  // Municipios
+  municipios: {
+    getAll: async (provinciaId?: string) => {
+      const query = provinciaId ? `?provinciaId=${provinciaId}` : '';
+      return request<{ success: boolean; data: any[] }>(`/municipios${query}`);
+    },
+
+    getById: async (id: string) => {
+      return request<{ success: boolean; data: any }>(`/municipios/${id}`);
     },
   },
 
@@ -344,8 +370,10 @@ export const api = {
     },
 
     create: async (data: {
-      empresaId: string;
-      negocioId: string;
+      empresaId?: string;
+      negocioId?: string;
+      adminId?: string;
+      tipo?: 'cliente-empresa' | 'empresa-admin' | 'cliente-admin';
     }) => {
       return request<{ success: boolean; data: any }>('/chats', {
         method: 'POST',

@@ -24,7 +24,8 @@ interface Empresa {
     nombre: string;
     estado: EstadoEmpresa;
     categoria: { nombre: string };
-    ciudad: { nombre: string };
+    provincia: { nombre: string };
+    municipio: { nombre: string };
     _count: {
       reservas: number;
       resenas: number;
@@ -135,7 +136,7 @@ const Empresas = () => {
       nombre: negocio.nombre,
       email: empresa.email,
       telefono: empresa.telefono || "N/A",
-      ciudad: negocio.ciudad.nombre,
+      ciudad: `${negocio.municipio?.nombre || ''}, ${negocio.provincia?.nombre || ''}`,
       categoria: negocio.categoria.nombre,
       estado: negocio.estado,
       fechaRegistro: empresa.createdAt,
@@ -146,7 +147,8 @@ const Empresas = () => {
   const filteredNegocios = negociosList.filter((negocio) =>
     negocio.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
     negocio.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    negocio.ciudad.toLowerCase().includes(searchQuery.toLowerCase())
+    (negocio.municipio?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (negocio.provincia?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const pendientes = negociosList.filter((e) => e.estado === "pendiente").length;
@@ -330,7 +332,7 @@ const Empresas = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Ciudad del Negocio</p>
-                      <p className="text-lg">{selectedNegocio.empresa.negocios[0].ciudad.nombre}</p>
+                      <p className="text-lg">{selectedNegocio.empresa.negocios[0].municipio?.nombre || ''}, {selectedNegocio.empresa.negocios[0].provincia?.nombre || ''}</p>
                     </div>
                   </>
                 )}
