@@ -9,7 +9,11 @@ export const getAllCategorias = async (req: AuthRequest, res: Response) => {
     include: {
       _count: {
         select: {
-          negocios: true,
+          negocios: {
+            where: {
+              estado: 'aprobada',
+            },
+          },
         },
       },
     },
