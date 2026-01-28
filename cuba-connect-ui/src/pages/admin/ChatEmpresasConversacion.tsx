@@ -4,86 +4,78 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, Paperclip, Building2 } from "lucide-react";
-import {
-  chatsEmpresaAdminMock,
-  MensajeEmpresaAdmin,
-} from "@/data/chatsEmpresaAdminMock";
-import { negociosMock } from "@/data/negociosMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
+type Mensaje = {
+  id: number | string;
+  remitente: "cliente" | "admin" | "empresa";
+  texto: string;
+  createdAt?: string;
+  fecha?: string;
+  leido?: boolean;
+};
+
 export default function AdminChatEmpresasConversacion() {
   const { id } = useParams();
-  const [mensajes, setMensajes] = useState<MensajeEmpresaAdmin[]>([]);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [chat, setChat] = useState<any | null>(null);
+  const [empresa, setEmpresa] = useState<any | null>(null);
+  const [negocio, setNegocio] = useState<any | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chat = chatsEmpresaAdminMock.find((c) => c.id === id);
-  const empresa = negociosMock.find((n) => n.propietarioId === chat?.propietarioId);
-
   useEffect(() => {
-    if (chat) {
-      setMensajes(chat.mensajes);
-    }
-  }, [chat]);
+    const fetchChat = async () => {
+      try {
+        if (!id) return;
+        setLoading(true);
+        const res = await api.chats.getById(id);
+        setChat(res.data);
+        setMensajes(res.data.mensajes || []);
+        setEmpresa(res.data.empresa || null);
+        setNegocio(res.data.negocio || null);
+      } catch (e: any) {
+        toast.error(e.message || "No se pudo cargar el chat");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChat();
+  }, [id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, escribiendo]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.82) {
-        setEscribiendo(true);
-
-        setTimeout(() => {
-          const mensajesSimulados = [
-            "¿Pueden revisar mi solicitud?",
-            "Necesito ayuda con la configuración",
-            "Gracias por la asistencia",
-            "¿Cuánto tiempo toma la aprobación?",
-          ];
-
-          const nuevoMensajeSimulado: MensajeEmpresaAdmin = {
-            id: Date.now().toString(),
-            remitente: "empresa",
-            texto: mensajesSimulados[
-              Math.floor(Math.random() * mensajesSimulados.length)
-            ],
-            fecha: new Date().toISOString(),
-            leido: false,
-          };
-
-          setMensajes((prev) => [...prev, nuevoMensajeSimulado]);
-          setEscribiendo(false);
-          toast.info("Nuevo mensaje de la empresa");
-        }, 2500);
-      }
-    }, 23000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEnviarMensaje = (e: React.FormEvent) => {
+  const handleEnviarMensaje = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoMensaje.trim()) return;
+    if (!nuevoMensaje.trim() || !id) return;
 
-    const mensaje: MensajeEmpresaAdmin = {
-      id: Date.now().toString(),
-      remitente: "admin",
-      texto: nuevoMensaje,
-      fecha: new Date().toISOString(),
-      leido: true,
-    };
-
-    setMensajes((prev) => [...prev, mensaje]);
-    setNuevoMensaje("");
-    toast.success("Mensaje enviado");
+    try {
+      const res = await api.chats.sendMessage(id, nuevoMensaje);
+      setMensajes((prev) => [...prev, res.data]);
+      setNuevoMensaje("");
+      toast.success("Mensaje enviado");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar mensaje");
+    }
   };
 
-  if (!chat || !empresa) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Cargando chat...</p>
+      </div>
+    );
+  }
+
+  if (!chat || (!empresa && !negocio)) {
     return (
       <div className="flex items-center justify-center h-96">
         <p className="text-muted-foreground">Chat no encontrado</p>
@@ -101,10 +93,10 @@ export default function AdminChatEmpresasConversacion() {
             </Button>
           </Link>
           <div className="w-10 h-10 rounded-full overflow-hidden">
-            {empresa.foto ? (
+            {negocio?.foto ? (
               <img
-                src={empresa.foto}
-                alt={empresa.nombre}
+                src={negocio.foto}
+                alt={negocio.nombre}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -114,7 +106,7 @@ export default function AdminChatEmpresasConversacion() {
             )}
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold">{empresa.nombre}</h2>
+            <h2 className="font-semibold">{negocio?.nombre || empresa?.nombre || "Empresa"}</h2>
             <p className="text-xs text-muted-foreground">
               {escribiendo ? "Escribiendo..." : "Empresa"}
             </p>
@@ -145,7 +137,7 @@ export default function AdminChatEmpresasConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.fecha), "HH:mm", { locale: es })}
+                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
               </p>
             </div>
           </div>

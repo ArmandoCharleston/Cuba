@@ -1,21 +1,37 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Building2 } from "lucide-react";
-import { chatsEmpresaAdminMock } from "@/data/chatsEmpresaAdminMock";
-import { negociosMock } from "@/data/negociosMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function AdminChatEmpresas() {
-  const getUltimoMensaje = (chatId: string) => {
-    const chat = chatsEmpresaAdminMock.find((c) => c.id === chatId);
-    if (!chat || chat.mensajes.length === 0) return null;
-    return chat.mensajes[chat.mensajes.length - 1];
-  };
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getEmpresaInfo = (propietarioId: string) => {
-    return negociosMock.find((n) => n.propietarioId === propietarioId);
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const res = await api.chats.getAll();
+        // Filtrar solo chats con empresas (donde hay empresaId)
+        const chatsConEmpresas = res.data.filter((chat: any) => chat.empresaId);
+        setChats(chatsConEmpresas || []);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
+
+  const getUltimoMensaje = (chat: any) => {
+    if (!chat.mensajes || chat.mensajes.length === 0) return null;
+    return chat.mensajes[chat.mensajes.length - 1];
   };
 
   return (
@@ -29,7 +45,13 @@ export default function AdminChatEmpresas() {
         </div>
       </div>
 
-      {chatsEmpresaAdminMock.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <p className="text-muted-foreground">Cargando chats...</p>
+          </CardContent>
+        </Card>
+      ) : chats.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
@@ -41,19 +63,20 @@ export default function AdminChatEmpresas() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {chatsEmpresaAdminMock.map((chat) => {
-            const ultimoMensaje = getUltimoMensaje(chat.id);
-            const empresa = getEmpresaInfo(chat.propietarioId);
+          {chats.map((chat) => {
+            const ultimoMensaje = getUltimoMensaje(chat);
+            const empresa = chat.empresa;
+            const negocio = chat.negocio;
 
             return (
               <Link key={chat.id} to={`/admin/chat-empresas/${chat.id}`}>
                 <Card className="hover:border-primary transition-colors cursor-pointer">
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="relative">
-                      {empresa?.foto ? (
+                      {negocio?.foto ? (
                         <img
-                          src={empresa.foto}
-                          alt={empresa.nombre}
+                          src={negocio.foto}
+                          alt={negocio.nombre}
                           className="w-14 h-14 rounded-full object-cover"
                         />
                       ) : (
@@ -61,9 +84,9 @@ export default function AdminChatEmpresas() {
                           <Building2 className="h-6 w-6 text-primary" />
                         </div>
                       )}
-                      {chat.noLeidosAdmin > 0 && (
+                      {chat.noLeidosEmpresa > 0 && (
                         <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                          {chat.noLeidosAdmin}
+                          {chat.noLeidosEmpresa}
                         </Badge>
                       )}
                     </div>
@@ -71,11 +94,11 @@ export default function AdminChatEmpresas() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-semibold truncate">
-                          {empresa?.nombre || "Empresa"}
+                          {negocio?.nombre || empresa?.nombre || "Empresa"}
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.fecha), "HH:mm", {
+                            {format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha), "HH:mm", {
                               locale: es,
                             })}
                           </span>
@@ -83,7 +106,7 @@ export default function AdminChatEmpresas() {
                       </div>
                       <p
                         className={`text-sm truncate ${
-                          chat.noLeidosAdmin > 0
+                          chat.noLeidosEmpresa > 0
                             ? "font-medium text-foreground"
                             : "text-muted-foreground"
                         }`}

@@ -302,3 +302,84 @@ export const cleanMockData = async (req: AuthRequest, res: Response) => {
   });
 };
 
+export const deleteUsuario = async (req: AuthRequest, res: Response) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  const { id } = req.params;
+  const userId = parseInt(id);
+
+  // No permitir eliminar al propio admin
+  if (userId === req.user.id) {
+    throw new AppError('No puedes eliminar tu propia cuenta', 400);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
+
+  // Si es admin, verificar que no sea el único admin
+  if (user.rol === 'admin') {
+    const adminCount = await prisma.user.count({
+      where: { rol: 'admin' },
+    });
+    if (adminCount <= 1) {
+      throw new AppError('No se puede eliminar el último administrador', 400);
+    }
+  }
+
+  // Eliminar el usuario (esto eliminará automáticamente sus negocios, reservas, etc. por cascada)
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  res.json({
+    success: true,
+    message: 'Usuario eliminado exitosamente',
+  });
+};
+
+export const deleteEmpresa = async (req: AuthRequest, res: Response) => {
+  if (!req.user || req.user.rol !== 'admin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  const { id } = req.params;
+  const empresaId = parseInt(id);
+
+  // No permitir eliminar al propio admin
+  if (empresaId === req.user.id) {
+    throw new AppError('No puedes eliminar tu propia cuenta', 400);
+  }
+
+  const empresa = await prisma.user.findUnique({
+    where: { id: empresaId },
+    include: {
+      negocios: true,
+    },
+  });
+
+  if (!empresa) {
+    throw new AppError('Empresa no encontrada', 404);
+  }
+
+  if (empresa.rol !== 'empresa') {
+    throw new AppError('El usuario no es una empresa', 400);
+  }
+
+  // Eliminar la empresa (esto eliminará automáticamente sus negocios, reservas, etc. por cascada)
+  await prisma.user.delete({
+    where: { id: empresaId },
+  });
+
+  res.json({
+    success: true,
+    message: 'Empresa eliminada exitosamente',
+  });
+};
+

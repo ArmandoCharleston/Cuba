@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export default function ClienteChat() {
   const [chats, setChats] = useState<any[]>([]);
@@ -90,7 +92,7 @@ export default function ClienteChat() {
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.fecha), "HH:mm", {
+                            {format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha), "HH:mm", {
                               locale: es,
                             })}
                           </span>

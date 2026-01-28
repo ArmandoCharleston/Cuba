@@ -2,25 +2,30 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare } from "lucide-react";
-import { chatsMock } from "@/data/chatsMock";
-import { usuariosMock } from "@/data/usuariosMock";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function EmpresaChat() {
-  // Filtrar chats de la empresa actual (mock: empresa 3)
-  const empresaId = "3";
-  const chatsEmpresa = chatsMock.filter((chat) => chat.empresaId === empresaId);
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getUltimoMensaje = (chatId: string) => {
-    const chat = chatsMock.find((c) => c.id === chatId);
-    if (!chat || chat.mensajes.length === 0) return null;
-    return chat.mensajes[chat.mensajes.length - 1];
-  };
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const response = await api.chats.getAll();
+        setChats(response.data || []);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const getClienteInfo = (clienteId: string) => {
-    return usuariosMock.find((u) => u.id === clienteId);
-  };
+    fetchChats();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -33,7 +38,13 @@ export default function EmpresaChat() {
         </div>
       </div>
 
-      {chatsEmpresa.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <p className="text-muted-foreground">Cargando mensajes...</p>
+          </CardContent>
+        </Card>
+      ) : chats.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
@@ -46,9 +57,11 @@ export default function EmpresaChat() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {chatsEmpresa.map((chat) => {
-            const ultimoMensaje = getUltimoMensaje(chat.id);
-            const cliente = getClienteInfo(chat.clienteId);
+          {chats.map((chat) => {
+            const ultimoMensaje = chat.mensajes && chat.mensajes.length > 0 
+              ? chat.mensajes[chat.mensajes.length - 1] 
+              : null;
+            const cliente = chat.cliente;
 
             return (
               <Link key={chat.id} to={`/empresa/chat/${chat.id}`}>
@@ -84,7 +97,7 @@ export default function EmpresaChat() {
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.fecha), "HH:mm", {
+                            {format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha), "HH:mm", {
                               locale: es,
                             })}
                           </span>

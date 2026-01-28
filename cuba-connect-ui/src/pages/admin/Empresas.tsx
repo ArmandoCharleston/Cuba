@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, CheckCircle, XCircle, Eye, Building2, Loader2 } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, Building2, Loader2, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,6 +97,30 @@ const Empresas = () => {
       toast({
         title: "Error",
         description: error.message || "Error al rechazar la empresa",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteEmpresa = async (empresaId: number) => {
+    if (!confirm("¿Estás seguro de eliminar esta empresa? Esta acción eliminará todos sus negocios y datos relacionados. Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      await api.admin.deleteEmpresa(empresaId.toString());
+      toast({
+        title: "Empresa eliminada",
+        description: "La empresa ha sido eliminada exitosamente",
+      });
+      await fetchEmpresas();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al eliminar la empresa",
         variant: "destructive",
       });
     } finally {
@@ -237,22 +261,32 @@ const Empresas = () => {
                       {new Date(negocio.fechaRegistro).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedNegocio({
-                            id: negocio.id,
-                            nombre: negocio.nombre,
-                            estado: negocio.estado,
-                            empresa: negocio.empresa,
-                          });
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedNegocio({
+                              id: negocio.id,
+                              nombre: negocio.nombre,
+                              estado: negocio.estado,
+                              empresa: negocio.empresa,
+                            });
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteEmpresa(negocio.empresa.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

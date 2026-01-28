@@ -240,6 +240,13 @@ export const api = {
     getById: async (id: string) => {
       return request<{ success: boolean; data: any }>(`/categorias/${id}`);
     },
+
+    create: async (data: { nombre: string; icono: string; descripcion?: string }) => {
+      return request<{ success: boolean; data: any }>('/categorias', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
   },
 
   // Ciudades
@@ -439,6 +446,18 @@ export const api = {
     removeDuplicateAdmins: async () => {
       return request<{ success: boolean; data: any; message: string }>('/admin/remove-duplicate-admins', {
         method: 'POST',
+      });
+    },
+
+    deleteUsuario: async (userId: string) => {
+      return request<{ success: boolean; message: string }>(`/admin/usuarios/${userId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    deleteEmpresa: async (empresaId: string) => {
+      return request<{ success: boolean; message: string }>(`/admin/empresas/${empresaId}`, {
+        method: 'DELETE',
       });
     },
   },

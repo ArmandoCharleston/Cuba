@@ -5,100 +5,75 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { ArrowLeft, Send, Paperclip, MoreVertical } from "lucide-react";
-import { chatsMock, Mensaje } from "@/data/chatsMock";
-import { negociosMock } from "@/data/negociosMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
+type Mensaje = {
+  id: number | string;
+  remitente: "cliente" | "empresa";
+  texto: string;
+  createdAt?: string;
+  fecha?: string;
+  leido?: boolean;
+};
+
 export default function ClienteChatConversacion() {
   const { id } = useParams();
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [chat, setChat] = useState<any | null>(null);
+  const [negocio, setNegocio] = useState<any | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chat = chatsMock.find((c) => c.id === id);
-  const negocio = negociosMock.find((n) => n.id === chat?.negocioId);
-
   useEffect(() => {
-    if (chat) {
-      setMensajes(chat.mensajes);
-    }
-  }, [chat]);
+    const fetchChat = async () => {
+      try {
+        if (!id) return;
+        setLoading(true);
+        const res = await api.chats.getById(id);
+        setChat(res.data);
+        setMensajes(res.data.mensajes || []);
+        setNegocio(res.data.negocio || null);
+      } catch (e: any) {
+        toast.error(e.message || "No se pudo cargar el chat");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChat();
+  }, [id]);
 
   // Scroll automático al final
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, escribiendo]);
 
-  // Simulación de mensajes entrantes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        // 30% de probabilidad
-        setEscribiendo(true);
-
-        setTimeout(() => {
-          const mensajesSimulados = [
-            "¿Necesitas ayuda con algo más?",
-            "Estamos disponibles para atenderte",
-            "¿Te gustaría agendar una cita?",
-            "Gracias por tu mensaje",
-          ];
-
-          const nuevoMensajeSimulado: Mensaje = {
-            id: Date.now().toString(),
-            remitente: "empresa",
-            texto: mensajesSimulados[
-              Math.floor(Math.random() * mensajesSimulados.length)
-            ],
-            fecha: new Date().toISOString(),
-            leido: false,
-          };
-
-          setMensajes((prev) => [...prev, nuevoMensajeSimulado]);
-          setEscribiendo(false);
-          toast.info("Nuevo mensaje recibido");
-        }, 2500);
-      }
-    }, 20000); // Cada 20 segundos
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEnviarMensaje = (e: React.FormEvent) => {
+  const handleEnviarMensaje = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoMensaje.trim()) return;
+    if (!nuevoMensaje.trim() || !id) return;
 
-    const mensaje: Mensaje = {
-      id: Date.now().toString(),
-      remitente: "cliente",
-      texto: nuevoMensaje,
-      fecha: new Date().toISOString(),
-      leido: true,
-    };
-
-    setMensajes((prev) => [...prev, mensaje]);
-    setNuevoMensaje("");
-    toast.success("Mensaje enviado");
-
-    // Simular respuesta automática después de 3 segundos
-    setTimeout(() => {
-      setEscribiendo(true);
-      setTimeout(() => {
-        const respuesta: Mensaje = {
-          id: (Date.now() + 1).toString(),
-          remitente: "empresa",
-          texto: "Gracias por tu mensaje, te responderemos pronto.",
-          fecha: new Date().toISOString(),
-          leido: false,
-        };
-        setMensajes((prev) => [...prev, respuesta]);
-        setEscribiendo(false);
-      }, 2000);
-    }, 3000);
+    try {
+      const res = await api.chats.sendMessage(id, nuevoMensaje);
+      setMensajes((prev) => [...prev, res.data]);
+      setNuevoMensaje("");
+      toast.success("Mensaje enviado");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar mensaje");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Cargando chat...</p>
+      </div>
+    );
+  }
 
   if (!chat || !negocio) {
     return (
@@ -161,7 +136,7 @@ export default function ClienteChatConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.fecha), "HH:mm", { locale: es })}
+                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
               </p>
             </div>
           </div>

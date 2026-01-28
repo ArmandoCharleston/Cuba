@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Edit, Trash2, Scissors, Sparkles, Heart, Dumbbell, UtensilsCrossed, Stethoscope } from "lucide-react";
-import { categoriasMock, Categoria } from "@/data/categoriasMock";
+import { Search, Plus, Edit, Trash2, Scissors, Sparkles, Heart, Dumbbell, UtensilsCrossed, Stethoscope, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import * as LucideIcons from "lucide-react";
+
+type Categoria = {
+  id: number;
+  nombre: string;
+  icono: string;
+  descripcion?: string;
+};
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Scissors,
@@ -23,7 +30,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 const Categorias = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [categorias, setCategorias] = useState<Categoria[]>(categoriasMock);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -33,6 +41,26 @@ const Categorias = () => {
     icono: "Scissors",
     descripcion: "",
   });
+
+  useEffect(() => {
+    fetchCategorias();
+  }, []);
+
+  const fetchCategorias = async () => {
+    try {
+      setLoading(true);
+      const res = await api.categorias.getAll();
+      setCategorias(res.data || []);
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e.message || "Error al cargar categorías",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditMode(false);
@@ -56,7 +84,7 @@ const Categorias = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.nombre || !formData.descripcion) {
       toast({
         title: "Error",
@@ -66,34 +94,43 @@ const Categorias = () => {
       return;
     }
 
-    if (editMode && selectedCategoria) {
-      setCategorias((prev) =>
-        prev.map((cat) =>
-          cat.id === selectedCategoria.id
-            ? { ...cat, nombre: formData.nombre, icono: formData.icono, descripcion: formData.descripcion }
-            : cat
-        )
-      );
+    try {
+      if (editMode && selectedCategoria) {
+        // TODO: Agregar endpoint de actualización en backend si es necesario
+        // Por ahora solo actualizamos en memoria
+        setCategorias((prev) =>
+          prev.map((cat) =>
+            cat.id === selectedCategoria.id
+              ? { ...cat, nombre: formData.nombre, icono: formData.icono, descripcion: formData.descripcion }
+              : cat
+          )
+        );
+        toast({
+          title: "Categoría Actualizada",
+          description: "La categoría ha sido actualizada exitosamente.",
+        });
+      } else {
+        const res = await api.categorias.create({
+          nombre: formData.nombre,
+          icono: formData.icono,
+          descripcion: formData.descripcion,
+        });
+        setCategorias((prev) => [...prev, res.data]);
+        toast({
+          title: "Categoría Creada",
+          description: "La categoría ha sido creada exitosamente.",
+        });
+      }
+
+      setDialogOpen(false);
+      setFormData({ nombre: "", icono: "Scissors", descripcion: "" });
+    } catch (e: any) {
       toast({
-        title: "Categoría Actualizada",
-        description: "La categoría ha sido actualizada exitosamente.",
-      });
-    } else {
-      const newCategoria: Categoria = {
-        id: String(categorias.length + 1),
-        nombre: formData.nombre,
-        icono: formData.icono,
-        descripcion: formData.descripcion,
-      };
-      setCategorias((prev) => [...prev, newCategoria]);
-      toast({
-        title: "Categoría Creada",
-        description: "La categoría ha sido creada exitosamente.",
+        title: "Error",
+        description: e.message || "No se pudo guardar la categoría",
+        variant: "destructive",
       });
     }
-
-    setDialogOpen(false);
-    setFormData({ nombre: "", icono: "Scissors", descripcion: "" });
   };
 
   const handleDelete = () => {
@@ -145,42 +182,52 @@ const Categorias = () => {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Icono</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCategorias.map((categoria) => {
-                const IconComponent = iconMap[categoria.icono] || Scissors;
-                return (
-                  <TableRow key={categoria.id}>
-                    <TableCell>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <IconComponent className="h-5 w-5 text-primary" />
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{categoria.nombre}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{categoria.descripcion}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(categoria)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDelete(categoria)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredCategorias.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No se encontraron categorías</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Icono</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCategorias.map((categoria) => {
+                  const IconComponent = iconMap[categoria.icono] || Scissors;
+                  return (
+                    <TableRow key={categoria.id}>
+                      <TableCell>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <IconComponent className="h-5 w-5 text-primary" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{categoria.nombre}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{categoria.descripcion}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(categoria)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenDelete(categoria)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

@@ -4,82 +4,72 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, Paperclip, Shield } from "lucide-react";
-import {
-  chatsClienteAdminMock,
-  MensajeClienteAdmin,
-} from "@/data/chatsClienteAdminMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
+type Mensaje = {
+  id: number | string;
+  remitente: "cliente" | "admin" | "empresa";
+  texto: string;
+  createdAt?: string;
+  fecha?: string;
+  leido?: boolean;
+};
+
 export default function ClienteChatAdminConversacion() {
   const { id } = useParams();
-  const [mensajes, setMensajes] = useState<MensajeClienteAdmin[]>([]);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [chat, setChat] = useState<any | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chat = chatsClienteAdminMock.find((c) => c.id === id);
-
   useEffect(() => {
-    if (chat) {
-      setMensajes(chat.mensajes);
-    }
-  }, [chat]);
+    const fetchChat = async () => {
+      try {
+        if (!id) return;
+        setLoading(true);
+        const res = await api.chats.getById(id);
+        setChat(res.data);
+        setMensajes(res.data.mensajes || []);
+      } catch (e: any) {
+        toast.error(e.message || "No se pudo cargar el chat");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChat();
+  }, [id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, escribiendo]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.85) {
-        setEscribiendo(true);
-
-        setTimeout(() => {
-          const mensajesSimulados = [
-            "Hemos revisado tu caso",
-            "¿En qué más te puedo ayudar?",
-            "Tu solicitud ha sido atendida",
-            "Gracias por tu paciencia",
-          ];
-
-          const nuevoMensajeSimulado: MensajeClienteAdmin = {
-            id: Date.now().toString(),
-            remitente: "admin",
-            texto: mensajesSimulados[
-              Math.floor(Math.random() * mensajesSimulados.length)
-            ],
-            fecha: new Date().toISOString(),
-            leido: false,
-          };
-
-          setMensajes((prev) => [...prev, nuevoMensajeSimulado]);
-          setEscribiendo(false);
-          toast.info("Nuevo mensaje del soporte");
-        }, 2500);
-      }
-    }, 22000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEnviarMensaje = (e: React.FormEvent) => {
+  const handleEnviarMensaje = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoMensaje.trim()) return;
+    if (!nuevoMensaje.trim() || !id) return;
 
-    const mensaje: MensajeClienteAdmin = {
-      id: Date.now().toString(),
-      remitente: "cliente",
-      texto: nuevoMensaje,
-      fecha: new Date().toISOString(),
-      leido: true,
-    };
-
-    setMensajes((prev) => [...prev, mensaje]);
-    setNuevoMensaje("");
-    toast.success("Mensaje enviado");
+    try {
+      const res = await api.chats.sendMessage(id, nuevoMensaje);
+      setMensajes((prev) => [...prev, res.data]);
+      setNuevoMensaje("");
+      toast.success("Mensaje enviado");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar mensaje");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Cargando chat...</p>
+      </div>
+    );
+  }
 
   if (!chat) {
     return (
@@ -133,7 +123,7 @@ export default function ClienteChatAdminConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.fecha), "HH:mm", { locale: es })}
+                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
               </p>
             </div>
           </div>

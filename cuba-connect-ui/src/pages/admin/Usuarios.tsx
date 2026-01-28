@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Loader2 } from "lucide-react";
+import { Search, MoreVertical, Loader2, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -69,6 +69,30 @@ const Usuarios = () => {
       toast({
         title: "Error",
         description: error.message || "Error al actualizar el rol",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteUsuario = async (userId: number) => {
+    if (!confirm("¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      setUpdating(userId);
+      await api.admin.deleteUsuario(userId.toString());
+      toast({
+        title: "Usuario eliminado",
+        description: "El usuario ha sido eliminado exitosamente",
+      });
+      await fetchUsuarios();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al eliminar el usuario",
         variant: "destructive",
       });
     } finally {
@@ -204,6 +228,16 @@ const Usuarios = () => {
                                 Cambiar a Admin
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteUsuario(usuario.id);
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar Usuario
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>

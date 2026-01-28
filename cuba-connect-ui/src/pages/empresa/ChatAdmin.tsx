@@ -1,20 +1,37 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield } from "lucide-react";
-import { chatsEmpresaAdminMock } from "@/data/chatsEmpresaAdminMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function EmpresaChatAdmin() {
-  const propietarioId = "3";
-  const chatsEmpresa = chatsEmpresaAdminMock.filter(
-    (chat) => chat.propietarioId === propietarioId
-  );
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getUltimoMensaje = (chatId: string) => {
-    const chat = chatsEmpresaAdminMock.find((c) => c.id === chatId);
-    if (!chat || chat.mensajes.length === 0) return null;
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const res = await api.chats.getAll();
+        // Filtrar solo chats con admin (necesitarías un campo especial o filtrar por empresaId y admin)
+        // Por ahora, asumimos que todos los chats son con admin si no tienen clienteId
+        const chatsAdmin = res.data.filter((chat: any) => !chat.clienteId && chat.empresaId);
+        setChats(chatsAdmin || []);
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
+
+  const getUltimoMensaje = (chat: any) => {
+    if (!chat.mensajes || chat.mensajes.length === 0) return null;
     return chat.mensajes[chat.mensajes.length - 1];
   };
 
@@ -29,7 +46,13 @@ export default function EmpresaChatAdmin() {
         </div>
       </div>
 
-      {chatsEmpresa.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <p className="text-muted-foreground">Cargando chats...</p>
+          </CardContent>
+        </Card>
+      ) : chats.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
@@ -42,8 +65,8 @@ export default function EmpresaChatAdmin() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {chatsEmpresa.map((chat) => {
-            const ultimoMensaje = getUltimoMensaje(chat.id);
+          {chats.map((chat) => {
+            const ultimoMensaje = getUltimoMensaje(chat);
 
             return (
               <Link key={chat.id} to={`/empresa/chat-admin/${chat.id}`}>
@@ -67,7 +90,7 @@ export default function EmpresaChatAdmin() {
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.fecha), "HH:mm", {
+                            {format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha), "HH:mm", {
                               locale: es,
                             })}
                           </span>

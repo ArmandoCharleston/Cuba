@@ -1,11 +1,40 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, TrendingUp, DollarSign, Users } from "lucide-react";
-import { reservasMock } from "@/data/reservasMock";
+import { Calendar, TrendingUp, DollarSign, Users, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 const Dashboard = () => {
-  const misReservas = reservasMock.filter((r) => r.negocioId === "1");
-  const reservasHoy = 3;
-  const ingresosMes = 1250;
+  const [reservas, setReservas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReservas = async () => {
+      try {
+        const res = await api.reservas.getAll({ limit: 100 });
+        setReservas(res.data || []);
+      } catch (error) {
+        console.error('Error fetching reservas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReservas();
+  }, []);
+
+  const reservasHoy = reservas.filter((r) => {
+    const hoy = new Date().toDateString();
+    const fechaReserva = new Date(r.fecha).toDateString();
+    return fechaReserva === hoy;
+  }).length;
+
+  const ingresosMes = reservas.reduce((total, r) => {
+    const fechaReserva = new Date(r.fecha);
+    const hoy = new Date();
+    if (fechaReserva.getMonth() === hoy.getMonth() && fechaReserva.getFullYear() === hoy.getFullYear()) {
+      return total + (r.precioTotal || 0);
+    }
+    return total;
+  }, 0);
 
   return (
     <div className="space-y-8">
@@ -35,7 +64,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Reservas</p>
-                <p className="text-3xl font-bold">{misReservas.length}</p>
+                <p className="text-3xl font-bold">{loading ? <Loader2 className="h-6 w-6 animate-spin" /> : reservas.length}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <TrendingUp className="h-6 w-6 text-primary" />

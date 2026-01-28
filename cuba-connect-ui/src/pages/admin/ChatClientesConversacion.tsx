@@ -4,84 +4,74 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, Paperclip, User } from "lucide-react";
-import {
-  chatsClienteAdminMock,
-  MensajeClienteAdmin,
-} from "@/data/chatsClienteAdminMock";
-import { usuariosMock } from "@/data/usuariosMock";
+import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
+type Mensaje = {
+  id: number | string;
+  remitente: "cliente" | "admin" | "empresa";
+  texto: string;
+  createdAt?: string;
+  fecha?: string;
+  leido?: boolean;
+};
+
 export default function AdminChatClientesConversacion() {
   const { id } = useParams();
-  const [mensajes, setMensajes] = useState<MensajeClienteAdmin[]>([]);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [chat, setChat] = useState<any | null>(null);
+  const [cliente, setCliente] = useState<any | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const chat = chatsClienteAdminMock.find((c) => c.id === id);
-  const cliente = usuariosMock.find((u) => u.id === chat?.clienteId);
-
   useEffect(() => {
-    if (chat) {
-      setMensajes(chat.mensajes);
-    }
-  }, [chat]);
+    const fetchChat = async () => {
+      try {
+        if (!id) return;
+        setLoading(true);
+        const res = await api.chats.getById(id);
+        setChat(res.data);
+        setMensajes(res.data.mensajes || []);
+        setCliente(res.data.cliente || null);
+      } catch (e: any) {
+        toast.error(e.message || "No se pudo cargar el chat");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChat();
+  }, [id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, escribiendo]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.83) {
-        setEscribiendo(true);
-
-        setTimeout(() => {
-          const mensajesSimulados = [
-            "¿Pueden ayudarme con esto?",
-            "Gracias por la respuesta",
-            "Tengo otra pregunta",
-            "¿Cuándo estará resuelto?",
-          ];
-
-          const nuevoMensajeSimulado: MensajeClienteAdmin = {
-            id: Date.now().toString(),
-            remitente: "cliente",
-            texto: mensajesSimulados[
-              Math.floor(Math.random() * mensajesSimulados.length)
-            ],
-            fecha: new Date().toISOString(),
-            leido: false,
-          };
-
-          setMensajes((prev) => [...prev, nuevoMensajeSimulado]);
-          setEscribiendo(false);
-          toast.info("Nuevo mensaje del cliente");
-        }, 2500);
-      }
-    }, 21000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEnviarMensaje = (e: React.FormEvent) => {
+  const handleEnviarMensaje = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoMensaje.trim()) return;
+    if (!nuevoMensaje.trim() || !id) return;
 
-    const mensaje: MensajeClienteAdmin = {
-      id: Date.now().toString(),
-      remitente: "admin",
-      texto: nuevoMensaje,
-      fecha: new Date().toISOString(),
-      leido: true,
-    };
-
-    setMensajes((prev) => [...prev, mensaje]);
-    setNuevoMensaje("");
-    toast.success("Mensaje enviado");
+    try {
+      const res = await api.chats.sendMessage(id, nuevoMensaje);
+      setMensajes((prev) => [...prev, res.data]);
+      setNuevoMensaje("");
+      toast.success("Mensaje enviado");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar mensaje");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Cargando chat...</p>
+      </div>
+    );
+  }
 
   if (!chat || !cliente) {
     return (
@@ -147,7 +137,7 @@ export default function AdminChatClientesConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.fecha), "HH:mm", { locale: es })}
+                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
               </p>
             </div>
           </div>
