@@ -6,22 +6,30 @@ import { AppError } from '../middleware/errorHandler';
 export const getAllCategorias = async (req: AuthRequest, res: Response) => {
   const categorias = await prisma.categoria.findMany({
     orderBy: { nombre: 'asc' },
-    include: {
-      _count: {
-        select: {
-          negocios: {
-            where: {
-              estado: 'aprobada',
-            },
-          },
-        },
-      },
-    },
   });
+
+  // Contar negocios aprobados para cada categoría
+  const categoriasConCount = await Promise.all(
+    categorias.map(async (categoria) => {
+      const count = await prisma.negocio.count({
+        where: {
+          categoriaId: categoria.id,
+          estado: 'aprobada',
+        },
+      });
+
+      return {
+        ...categoria,
+        _count: {
+          negocios: count,
+        },
+      };
+    })
+  );
 
   res.json({
     success: true,
-    data: categorias,
+    data: categoriasConCount,
   });
 };
 
