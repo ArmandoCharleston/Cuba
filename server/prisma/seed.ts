@@ -164,19 +164,22 @@ async function main() {
   let totalMunicipios = 0;
 
   for (const [provinciaNombre, municipios] of Object.entries(provinciasYMunicipios)) {
+    // Eliminar duplicados de municipios
+    const municipiosUnicos = [...new Set(municipios)];
+    
     const provincia = await prisma.provincia.create({
       data: {
         nombre: provinciaNombre,
         municipios: {
-          create: municipios.map((municipioNombre) => ({
+          create: municipiosUnicos.map((municipioNombre) => ({
             nombre: municipioNombre,
           })),
         },
       },
     });
 
-    console.log(`   ✅ Provincia creada: ${provincia.nombre} (${municipios.length} municipios)`);
-    totalMunicipios += municipios.length;
+    console.log(`   ✅ Provincia creada: ${provincia.nombre} (${municipiosUnicos.length} municipios)`);
+    totalMunicipios += municipiosUnicos.length;
   }
   console.log('');
 
