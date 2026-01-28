@@ -96,7 +96,9 @@ EXPOSE 3000
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
 # Estrategia simplificada: Intentar migrate deploy, si falla usar db push (las tablas ya existen)
-CMD ["sh", "-c", "echo '=== Intentando aplicar migraciones ===' && \
+CMD ["sh", "-c", "echo '=== Resolviendo migraciones fallidas ===' && \
+  npx prisma migrate resolve --applied 20260128000000_add_provincias_municipios --schema=/app/server/prisma/schema.prisma 2>&1 || echo 'No hay migraciones fallidas o ya fueron resueltas' && \
+  echo '=== Intentando aplicar migraciones ===' && \
   (npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma 2>&1 || \
    (echo '⚠️ migrate deploy falló, usando db push para sincronizar schema...' && \
     npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss)) && \
