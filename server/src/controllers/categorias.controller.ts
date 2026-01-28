@@ -41,7 +41,18 @@ export const getCategoriaById = async (req: AuthRequest, res: Response) => {
     include: {
       negocios: {
         include: {
-          ciudad: true,
+          provincia: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          municipio: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
           _count: {
             select: {
               reservas: true,

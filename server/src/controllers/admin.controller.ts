@@ -105,7 +105,18 @@ export const getAllEmpresas = async (req: AuthRequest, res: Response) => {
         negocios: {
           include: {
             categoria: true,
-            ciudad: true,
+            provincia: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
+            municipio: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
             _count: {
               select: {
                 reservas: true,
@@ -185,7 +196,18 @@ export const updateNegocioEstado = async (req: AuthRequest, res: Response) => {
     data: { estado: estado as 'pendiente' | 'aprobada' | 'rechazada' },
     include: {
       categoria: true,
-      ciudad: true,
+      provincia: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      municipio: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
       propietario: {
         select: {
           id: true,

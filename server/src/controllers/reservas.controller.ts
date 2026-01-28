@@ -85,7 +85,23 @@ export const getReservaById = async (req: AuthRequest, res: Response) => {
       negocio: {
         include: {
           categoria: true,
-          ciudad: true,
+          provincia: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          municipio: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          propietario: {
+            select: {
+              id: true,
+            },
+          },
         },
       },
       servicio: true,
