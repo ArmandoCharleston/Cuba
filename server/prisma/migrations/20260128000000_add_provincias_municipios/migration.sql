@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `municipios` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Add new columns to negocios
+-- Add new columns to negocios (nullable initially)
 ALTER TABLE `negocios` ADD COLUMN IF NOT EXISTS `provinciaId` INTEGER NULL;
 ALTER TABLE `negocios` ADD COLUMN IF NOT EXISTS `municipioId` INTEGER NULL;
 
@@ -37,7 +37,34 @@ ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_provinciaId_fkey` 
 -- AddForeignKey
 ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_municipioId_fkey` FOREIGN KEY (`municipioId`) REFERENCES `municipios`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Note: provinciaId and municipioId are nullable initially
--- The seed script will populate provincias/municipios and then you can update negocios
--- For now, we'll make them nullable to allow the migration to succeed
+-- Update chats table to support new chat types
+-- Make clienteId, empresaId, negocioId nullable
+ALTER TABLE `chats` MODIFY COLUMN `clienteId` INTEGER NULL;
+ALTER TABLE `chats` MODIFY COLUMN `empresaId` INTEGER NULL;
+ALTER TABLE `chats` MODIFY COLUMN `negocioId` INTEGER NULL;
 
+-- Add new columns for admin support
+ALTER TABLE `chats` ADD COLUMN IF NOT EXISTS `adminId` INTEGER NULL;
+ALTER TABLE `chats` ADD COLUMN IF NOT EXISTS `tipo` VARCHAR(191) NOT NULL DEFAULT 'cliente-empresa';
+ALTER TABLE `chats` ADD COLUMN IF NOT EXISTS `noLeidosAdmin` INTEGER NOT NULL DEFAULT 0;
+
+-- Create index for adminId
+CREATE INDEX IF NOT EXISTS `chats_adminId_idx` ON `chats`(`adminId`);
+
+-- AddForeignKey for admin
+ALTER TABLE `chats` ADD CONSTRAINT IF NOT EXISTS `chats_adminId_fkey` FOREIGN KEY (`adminId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Drop the old unique constraint if it exists (safely)
+SET @constraint_exists = (
+    SELECT COUNT(*) 
+    FROM information_schema.TABLE_CONSTRAINTS 
+    WHERE CONSTRAINT_SCHEMA = DATABASE() 
+    AND CONSTRAINT_NAME = 'chats_clienteId_empresaId_negocioId_key'
+);
+SET @sql = IF(@constraint_exists > 0,
+    'ALTER TABLE `chats` DROP INDEX `chats_clienteId_empresaId_negocioId_key`;',
+    'SELECT "Constraint chats_clienteId_empresaId_negocioId_key does not exist";'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
