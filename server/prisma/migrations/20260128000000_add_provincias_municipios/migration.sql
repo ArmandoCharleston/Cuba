@@ -38,6 +38,36 @@ ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_provinciaId_fkey` 
 ALTER TABLE `negocios` ADD CONSTRAINT IF NOT EXISTS `negocios_municipioId_fkey` FOREIGN KEY (`municipioId`) REFERENCES `municipios`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Update chats table to support new chat types
+-- First, drop foreign keys that depend on the unique constraint
+SET @fk_exists = (
+    SELECT COUNT(*) 
+    FROM information_schema.TABLE_CONSTRAINTS 
+    WHERE CONSTRAINT_SCHEMA = DATABASE() 
+    AND CONSTRAINT_NAME = 'chats_negocioId_fkey'
+);
+SET @sql = IF(@fk_exists > 0,
+    'ALTER TABLE `chats` DROP FOREIGN KEY `chats_negocioId_fkey`;',
+    'SELECT "FK chats_negocioId_fkey does not exist";'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Drop the unique constraint if it exists
+SET @constraint_exists = (
+    SELECT COUNT(*) 
+    FROM information_schema.TABLE_CONSTRAINTS 
+    WHERE CONSTRAINT_SCHEMA = DATABASE() 
+    AND CONSTRAINT_NAME = 'chats_clienteId_empresaId_negocioId_key'
+);
+SET @sql = IF(@constraint_exists > 0,
+    'ALTER TABLE `chats` DROP INDEX `chats_clienteId_empresaId_negocioId_key`;',
+    'SELECT "Constraint chats_clienteId_empresaId_negocioId_key does not exist";'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- Make clienteId, empresaId, negocioId nullable
 ALTER TABLE `chats` MODIFY COLUMN `clienteId` INTEGER NULL;
 ALTER TABLE `chats` MODIFY COLUMN `empresaId` INTEGER NULL;
@@ -51,9 +81,8 @@ ALTER TABLE `chats` ADD COLUMN IF NOT EXISTS `noLeidosAdmin` INTEGER NOT NULL DE
 -- Create index for adminId
 CREATE INDEX IF NOT EXISTS `chats_adminId_idx` ON `chats`(`adminId`);
 
+-- Re-add foreign key for negocioId
+ALTER TABLE `chats` ADD CONSTRAINT IF NOT EXISTS `chats_negocioId_fkey` FOREIGN KEY (`negocioId`) REFERENCES `negocios`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 -- AddForeignKey for admin
 ALTER TABLE `chats` ADD CONSTRAINT IF NOT EXISTS `chats_adminId_fkey` FOREIGN KEY (`adminId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Note: We don't drop the unique constraint here because it might be needed
--- The constraint will be handled by Prisma's db push if needed
--- For now, we just make the columns nullable and add the new fields
