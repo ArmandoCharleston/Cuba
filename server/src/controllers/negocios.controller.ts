@@ -4,14 +4,31 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 export const getAllNegocios = async (req: AuthRequest, res: Response) => {
-  const { categoriaId, provinciaId, municipioId, search } = req.query;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const skip = (page - 1) * limit;
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'negocios.controller.ts:getAllNegocios',
+      message: 'getAllNegocios called',
+      data: { query: req.query },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'D',
+    }),
+  }).catch(() => {});
+  // #endregion
 
-  const where: any = {
-    estado: 'aprobada', // Solo mostrar negocios aprobados
-  };
+  try {
+    const { categoriaId, provinciaId, municipioId, search } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      estado: 'aprobada', // Solo mostrar negocios aprobados
+    };
 
   if (categoriaId) {
     where.categoriaId = parseInt(categoriaId as string);
@@ -32,58 +49,92 @@ export const getAllNegocios = async (req: AuthRequest, res: Response) => {
     ];
   }
 
-  const [negocios, total] = await Promise.all([
-    prisma.negocio.findMany({
-      where,
-      include: {
-        categoria: true,
-        provincia: {
-          select: {
-            id: true,
-            nombre: true,
+    const [negocios, total] = await Promise.all([
+      prisma.negocio.findMany({
+        where,
+        include: {
+          categoria: true,
+          provincia: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          municipio: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          propietario: {
+            select: {
+              id: true,
+              nombre: true,
+              apellido: true,
+              email: true,
+            },
+          },
+          fotos: {
+            orderBy: { orden: 'asc' },
+          },
+          _count: {
+            select: {
+              reservas: true,
+              resenas: true,
+            },
           },
         },
-        municipio: {
-          select: {
-            id: true,
-            nombre: true,
-          },
-        },
-        propietario: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            email: true,
-          },
-        },
-        fotos: {
-          orderBy: { orden: 'asc' },
-        },
-        _count: {
-          select: {
-            reservas: true,
-            resenas: true,
-          },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.negocio.count({ where }),
-  ]);
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.negocio.count({ where }),
+    ]);
 
-  res.json({
-    success: true,
-    data: negocios,
-    pagination: {
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit),
-    },
-  });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'negocios.controller.ts:getAllNegocios-success',
+        message: 'getAllNegocios completed successfully',
+        data: { count: negocios.length, total },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'D',
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    res.json({
+      success: true,
+      data: negocios,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error: any) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'negocios.controller.ts:getAllNegocios-error',
+        message: 'getAllNegocios failed',
+        data: { error: error?.message || String(error), stack: error?.stack },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'D',
+      }),
+    }).catch(() => {});
+    // #endregion
+    throw error; // Re-throw para que el errorHandler lo maneje
+  }
 };
 
 export const getNegocioById = async (req: AuthRequest, res: Response) => {

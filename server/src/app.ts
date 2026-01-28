@@ -5,6 +5,7 @@ import path from 'path';
 import { config } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import prisma from './config/database';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -38,8 +39,74 @@ if (config.nodeEnv === 'development') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Middleware de logging para todas las peticiones
+app.use((req, res, next) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'app.ts:request-logger',
+      message: 'Incoming request',
+      data: { method: req.method, path: req.path, query: req.query },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'D',
+    }),
+  }).catch(() => {});
+  // #endregion
+  next();
+});
+
+app.get('/health', async (req, res) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      location: 'app.ts:health',
+      message: 'Health check requested',
+      data: { path: req.path },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B',
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  try {
+    // Verificar conexión a la base de datos
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      database: 'connected'
+    });
+  } catch (error: any) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'app.ts:health-error',
+        message: 'Database connection failed',
+        data: { error: error?.message || String(error) },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'B',
+      }),
+    }).catch(() => {});
+    // #endregion
+    res.status(503).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: error?.message || 'Database connection failed'
+    });
+  }
 });
 
 app.use('/api/auth', authRoutes);
@@ -74,8 +141,38 @@ if (config.nodeEnv === 'production') {
     // Solo manejar rutas que NO son API
     if (!req.path.startsWith('/api')) {
       const indexPath = path.join(frontendDistPath, 'index.html');
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'app.ts:SPA-fallback',
+          message: 'Serving SPA route',
+          data: { path: req.path, indexPath },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'E',
+        }),
+      }).catch(() => {});
+      // #endregion
       res.sendFile(indexPath, (err) => {
         if (err) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'app.ts:SPA-error',
+              message: 'Error serving index.html',
+              data: { error: err.message, path: req.path, indexPath },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              runId: 'run1',
+              hypothesisId: 'E',
+            }),
+          }).catch(() => {});
+          // #endregion
           console.error(`❌ Error serving index.html: ${err.message}`);
           next(err);
         }
