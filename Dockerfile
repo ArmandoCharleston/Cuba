@@ -100,7 +100,8 @@ CMD ["sh", "-c", "echo '=== Resolviendo migraciones fallidas ===' && \
   npx prisma migrate resolve --applied 20260128000000_add_provincias_municipios --schema=/app/server/prisma/schema.prisma 2>&1 || echo 'No hay migraciones fallidas o ya fueron resueltas' && \
   echo '=== Intentando aplicar migraciones ===' && \
   (npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma 2>&1 || \
-   (echo '⚠️ migrate deploy falló, usando db push para sincronizar schema...' && \
+   (echo '⚠️ migrate deploy falló, resolviendo migración fallida y usando db push...' && \
+    npx prisma migrate resolve --rolled-back 20260128000000_add_provincias_municipios --schema=/app/server/prisma/schema.prisma 2>&1 || true && \
     npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss)) && \
   echo '✅ Base de datos sincronizada' && \
   echo '=== Ejecutando seed ===' && \
