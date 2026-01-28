@@ -100,7 +100,7 @@ CMD ["sh", "-c", "echo '=== Intentando aplicar migraciones ===' && \
     npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss)) && \
   echo '✅ Base de datos sincronizada' && \
   echo '=== Ejecutando seed ===' && \
-  (npm run prisma:seed:prod || npx ts-node prisma/seed.ts || echo '⚠️ Seed falló, continuando...') && \
+  (npx tsx prisma/seed.ts || echo '⚠️ Seed falló, continuando...') && \
   echo '✅ Seed completado' && \
   node dist/server.js"]
 
