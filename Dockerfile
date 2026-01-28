@@ -55,6 +55,8 @@ COPY server/package*.json ./server/
 # Instalar solo dependencias de producción del servidor
 WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
+# Instalar tsx para ejecutar el seed en producción
+RUN npm install tsx --save --ignore-scripts || true
 
 # Copiar schema de Prisma, migraciones y seed antes de generar el cliente
 # Copiar schema y todas las migraciones dinámicamente
