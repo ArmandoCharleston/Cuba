@@ -100,8 +100,8 @@ model Negocio {
   descripcion    String?       @db.Text
   foto           String?
   categoriaId    Int
-  provinciaId    Int
-  municipioId    Int
+  provinciaId    Int?
+  municipioId    Int?
   propietarioId  Int
   estado         NegocioEstado @default(pendiente)
   calificacion   Float         @default(0)
@@ -112,8 +112,8 @@ model Negocio {
   updatedAt      DateTime      @updatedAt
 
   categoria   Categoria     @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
-  provincia   Provincia     @relation(fields: [provinciaId], references: [id], onDelete: Cascade)
-  municipio   Municipio     @relation(fields: [municipioId], references: [id], onDelete: Cascade)
+  provincia   Provincia?    @relation(fields: [provinciaId], references: [id], onDelete: Cascade)
+  municipio   Municipio?    @relation(fields: [municipioId], references: [id], onDelete: Cascade)
   propietario User          @relation(fields: [propietarioId], references: [id], onDelete: Cascade)
   servicios   Servicio[]
   reservas    Reserva[]

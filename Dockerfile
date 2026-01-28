@@ -63,6 +63,7 @@ RUN npm install tsx --save --ignore-scripts || true
 COPY server/prisma/schema.prisma ./prisma/schema.prisma
 COPY server/prisma/migrations/ ./prisma/migrations/
 COPY server/prisma/seed.ts ./prisma/seed.ts
+COPY server/prisma/fix-schema.ts ./prisma/fix-schema.ts
 
 # Asegurar permisos correctos en los archivos de migración
 RUN chmod -R 644 prisma/migrations/*/migration.sql 2>/dev/null || true && \
@@ -95,8 +96,10 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-# Estrategia: Usar db push para sincronizar schema (más robusto que migraciones)
-CMD ["sh", "-c", "echo '=== Sincronizando schema con db push ===' && \
+# Estrategia: Ejecutar script para preparar DB, luego db push
+CMD ["sh", "-c", "echo '=== Preparando base de datos ===' && \
+  (npx tsx prisma/fix-schema.ts || echo '⚠️ Script de preparación falló, continuando...') && \
+  echo '=== Sincronizando schema con db push ===' && \
   npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss && \
   echo '✅ Schema sincronizado' && \
   echo '=== Ejecutando seed ===' && \
