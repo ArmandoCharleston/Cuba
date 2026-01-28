@@ -68,7 +68,8 @@ const NegocioDetalle = () => {
     );
   }
 
-  const ciudad = negocio.ciudad;
+  const provincia = negocio.provincia;
+  const municipio = negocio.municipio;
   const categoria = negocio.categoria;
   const servicios = negocio.servicios || [];
   const resenas = negocio.resenas || [];
