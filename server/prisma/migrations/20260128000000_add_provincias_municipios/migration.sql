@@ -20,8 +20,18 @@ CREATE TABLE IF NOT EXISTS `municipios` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Add new columns to negocios (nullable initially)
-ALTER TABLE `negocios` ADD COLUMN IF NOT EXISTS `provinciaId` INTEGER NULL;
-ALTER TABLE `negocios` ADD COLUMN IF NOT EXISTS `municipioId` INTEGER NULL;
+-- Check if columns exist before adding (MySQL doesn't support IF NOT EXISTS in ALTER TABLE)
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'negocios' AND COLUMN_NAME = 'provinciaId');
+SET @sql = IF(@col_exists = 0, 'ALTER TABLE `negocios` ADD COLUMN `provinciaId` INTEGER NULL;', 'SELECT "Column provinciaId already exists";');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'negocios' AND COLUMN_NAME = 'municipioId');
+SET @sql = IF(@col_exists = 0, 'ALTER TABLE `negocios` ADD COLUMN `municipioId` INTEGER NULL;', 'SELECT "Column municipioId already exists";');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS `negocios_provinciaId_idx` ON `negocios`(`provinciaId`);
