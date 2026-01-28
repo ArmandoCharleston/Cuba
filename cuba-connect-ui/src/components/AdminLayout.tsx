@@ -1,9 +1,11 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, Building2, Tag, FileText, LogOut, ShieldCheck, MessageSquare } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const AdminLayout = () => {
   const location = useLocation();
+  const { logout } = useAuth();
 
   const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -49,12 +51,14 @@ export const AdminLayout = () => {
         </nav>
 
         <div className="absolute bottom-6 left-0 right-0 px-3">
-          <Link to="/">
-            <Button variant="ghost" className="w-full justify-start text-destructive">
-              <LogOut className="mr-3 h-5 w-5" />
-              Cerrar Sesión
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={logout}
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Cerrar Sesión
+          </Button>
         </div>
       </aside>
 

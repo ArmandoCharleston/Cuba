@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/lib/errorHandler";
 
 const LoginCliente = () => {
   const { login } = useAuth();
@@ -25,7 +26,7 @@ const LoginCliente = () => {
       await login(email, password, 'cliente');
       toast.success("Inicio de sesión exitoso");
     } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión");
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

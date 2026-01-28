@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ArrowLeft, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errorHandler";
 
 const RegistroCliente = () => {
   const { register } = useAuth();
@@ -37,7 +38,7 @@ const RegistroCliente = () => {
         }
       } catch (error: any) {
         console.error('Error fetching ciudades:', error);
-        toast.error(error.message || "Error al cargar ciudades. Puedes continuar sin seleccionar una ciudad.");
+        toast.error(getErrorMessage(error) || "Error al cargar ciudades. Puedes continuar sin seleccionar una ciudad.");
         setCiudades([]);
       } finally {
         setLoadingCiudades(false);
@@ -65,7 +66,7 @@ const RegistroCliente = () => {
       });
       toast.success("Cuenta creada exitosamente!");
     } catch (error: any) {
-      toast.error(error.message || "Error al crear la cuenta");
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -158,7 +159,7 @@ const RegistroCliente = () => {
                     <select
                       id="ciudad"
                       name="ciudad"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={formData.ciudad}
                       onChange={handleChange}
                     >

@@ -8,3 +8,4 @@ router.get('/:id', provinciasController.getProvinciaById);
 
 export default router;
 
+

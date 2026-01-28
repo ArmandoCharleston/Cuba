@@ -12,7 +12,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:seed:prod": "tsx prisma/seed.ts"
+    "prisma:seed:prod": "tsx prisma/seed.ts",
+    "prisma:clean": "ts-node prisma/clean-db.ts"
   },
   "keywords": [
     "express",

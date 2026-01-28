@@ -1,3 +1,5 @@
+import { getErrorMessage } from './errorHandler';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 // Helper function to get auth token
@@ -27,80 +29,27 @@ const request = async <T>(
       headers,
     });
 
-    // Check if response is ok before trying to parse JSON
-    if (!response.ok) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:31',message:'API error response',data:{status:response.status,statusText:response.statusText,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      let errorMessage = 'Ocurrió un error';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch {
+          // Si no se puede parsear, crear un objeto de error básico
+          errorData = { status: response.status };
+        }
         
-        // Map common HTTP status codes to user-friendly messages
-        if (!errorData.message && !errorData.error) {
-          switch (response.status) {
-            case 400:
-              errorMessage = 'Solicitud inválida. Por favor verifica los datos ingresados.';
-              break;
-            case 401:
-              errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
-              break;
-            case 403:
-              errorMessage = 'No tienes permisos para realizar esta acción.';
-              break;
-            case 404:
-              errorMessage = 'El recurso solicitado no fue encontrado.';
-              break;
-            case 409:
-              errorMessage = 'Ya existe un recurso con estos datos.';
-              break;
-            case 422:
-              errorMessage = 'Los datos proporcionados no son válidos.';
-              break;
-            case 500:
-              errorMessage = 'Error del servidor. Por favor intenta más tarde.';
-              break;
-            case 502:
-              errorMessage = 'Error de conexión con el servidor. Por favor intenta más tarde.';
-              break;
-            case 503:
-              errorMessage = 'El servicio no está disponible temporalmente.';
-              break;
-            default:
-              errorMessage = `Error ${response.status}: ${errorMessage}`;
-          }
-        }
-      } catch {
-        // If we can't parse the error response, use status-based messages
-        switch (response.status) {
-          case 400:
-            errorMessage = 'Solicitud inválida. Por favor verifica los datos ingresados.';
-            break;
-          case 401:
-            errorMessage = 'No autorizado. Por favor inicia sesión nuevamente.';
-            break;
-          case 403:
-            errorMessage = 'No tienes permisos para realizar esta acción.';
-            break;
-          case 404:
-            errorMessage = 'El recurso solicitado no fue encontrado.';
-            break;
-          case 500:
-            errorMessage = 'Error del servidor. Por favor intenta más tarde.';
-            break;
-          case 502:
-            errorMessage = 'Error de conexión con el servidor. Por favor intenta más tarde.';
-            break;
-          case 503:
-            errorMessage = 'El servicio no está disponible temporalmente.';
-            break;
-          default:
-            errorMessage = `Error ${response.status}: Ocurrió un error inesperado.`;
-        }
+        // Usar el errorHandler para obtener un mensaje amigable
+        const error = {
+          response: {
+            status: response.status,
+            data: errorData,
+          },
+          message: errorData.message || errorData.error,
+        };
+        
+        throw new Error(getErrorMessage(error));
       }
-      throw new Error(errorMessage);
-    }
 
     // Try to parse JSON, but handle cases where response might be empty
     const contentType = response.headers.get('content-type');
@@ -120,9 +69,14 @@ const request = async <T>(
   } catch (error) {
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Network error: Could not connect to server. Please check if the backend is running.');
+      throw new Error('No se pudo conectar al servidor. Por favor, verifica tu conexión a internet.');
     }
-    throw error;
+    // Si ya es un Error con mensaje, lanzarlo directamente
+    if (error instanceof Error) {
+      throw error;
+    }
+    // Para otros tipos de errores, usar el errorHandler
+    throw new Error(getErrorMessage(error));
   }
 };
 

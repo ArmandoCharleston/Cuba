@@ -55,15 +55,11 @@ COPY server/package*.json ./server/
 # Instalar solo dependencias de producción del servidor
 WORKDIR /app/server
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
-# Instalar tsx para ejecutar el seed en producción
-RUN npm install tsx --save --ignore-scripts || true
 
-# Copiar schema de Prisma, migraciones y seed antes de generar el cliente
+# Copiar schema de Prisma y migraciones antes de generar el cliente
 # Copiar schema y todas las migraciones dinámicamente
 COPY server/prisma/schema.prisma ./prisma/schema.prisma
 COPY server/prisma/migrations/ ./prisma/migrations/
-COPY server/prisma/seed.ts ./prisma/seed.ts
-COPY server/prisma/fix-schema.ts ./prisma/fix-schema.ts
 
 # Asegurar permisos correctos en los archivos de migración
 RUN chmod -R 644 prisma/migrations/*/migration.sql 2>/dev/null || true && \
@@ -96,14 +92,12 @@ EXPOSE 3000
 # Comando de inicio
 WORKDIR /app/server
 # Ejecutar migraciones y luego iniciar servidor
-# Estrategia: Ejecutar script para preparar DB, luego db push
-CMD ["sh", "-c", "echo '=== Preparando base de datos ===' && \
-  (npx tsx prisma/fix-schema.ts || echo '⚠️ Script de preparación falló, continuando...') && \
-  echo '=== Sincronizando schema con db push ===' && \
-  npx prisma db push --schema=/app/server/prisma/schema.prisma --skip-generate --accept-data-loss && \
-  echo '✅ Schema sincronizado' && \
-  echo '=== Ejecutando seed ===' && \
-  (npx tsx prisma/seed.ts || echo '⚠️ Seed falló, continuando...') && \
-  echo '✅ Seed completado' && \
+# Estrategia: Aplicar migraciones pendientes (solo cambios incrementales, no borra datos)
+CMD ["sh", "-c", "echo '=== Aplicando migraciones ===' && \
+  npx prisma migrate deploy --schema=/app/server/prisma/schema.prisma && \
+  echo '✅ Migraciones aplicadas' && \
+  echo '=== Generando Prisma Client ===' && \
+  npx prisma generate --schema=/app/server/prisma/schema.prisma && \
+  echo '✅ Prisma Client generado' && \
   node dist/server.js"]
 
