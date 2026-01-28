@@ -147,8 +147,11 @@ const NegocioDetalle = () => {
                     <img
                       key={idx}
                       src={fotoUrl}
-                      alt={`${negocio.nombre} ${idx + 2}`}
+                      alt={`${negocio.nombre || 'Negocio'} ${idx + 2}`}
                       className="h-[192px] w-full rounded-lg object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   ))}
                 </div>
