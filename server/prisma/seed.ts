@@ -40,7 +40,7 @@ const provinciasYMunicipios = {
   ],
   'Sancti Spíritus': [
     'Sancti Spíritus', 'Cabaiguán', 'Fomento', 'Jatibonico', 'La Sierpe',
-    'Sancti Spíritus', 'Taguasco', 'Trinidad', 'Yaguajay'
+    'Taguasco', 'Trinidad', 'Yaguajay'
   ],
   'Ciego de Ávila': [
     'Ciego de Ávila', 'Baraguá', 'Bolivia', 'Chambas', 'Ciro Redondo',
