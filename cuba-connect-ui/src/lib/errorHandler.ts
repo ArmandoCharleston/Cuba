@@ -54,7 +54,13 @@ export const getErrorMessage = (error: any): string => {
   }
 
   // Error 401 - No autorizado
+  // Primero verificar si hay un mensaje específico del backend
   if (error?.response?.status === 401) {
+    // Si hay un mensaje específico del backend, usarlo
+    if (error?.response?.data?.message) {
+      return error.response.data.message;
+    }
+    // Si no, usar mensaje genérico
     return 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
   }
 
