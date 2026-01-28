@@ -86,10 +86,12 @@ async function main() {
   console.log('🧹 Limpiando datos mock...');
   
   // Eliminar todos los usuarios excepto el admin
-  const adminEmail = 'admin@reservatecuba.com';
-  const adminUser = await prisma.user.findUnique({
-    where: { email: adminEmail },
+  // Buscar el admin por rol en lugar de email específico
+  const adminUser = await prisma.user.findFirst({
+    where: { rol: 'admin' },
   });
+  
+  const adminEmail = adminUser?.email || 'admin@reservatecuba.com';
 
   if (adminUser) {
     const deletedUsers = await prisma.user.deleteMany({
