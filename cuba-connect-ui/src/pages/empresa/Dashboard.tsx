@@ -22,12 +22,14 @@ const Dashboard = () => {
   }, []);
 
   const reservasHoy = reservas.filter((r) => {
+    if (!r.fecha) return false;
     const hoy = new Date().toDateString();
     const fechaReserva = new Date(r.fecha).toDateString();
     return fechaReserva === hoy;
   }).length;
 
   const ingresosMes = reservas.reduce((total, r) => {
+    if (!r.fecha) return total;
     const fechaReserva = new Date(r.fecha);
     const hoy = new Date();
     if (fechaReserva.getMonth() === hoy.getMonth() && fechaReserva.getFullYear() === hoy.getFullYear()) {

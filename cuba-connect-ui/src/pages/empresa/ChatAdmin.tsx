@@ -48,13 +48,15 @@ export default function EmpresaChatAdmin() {
         <Button
           onClick={async () => {
             try {
-              // Obtener el admin (asumiendo que hay un admin con id 1 o el primer admin)
-              const adminId = "1"; // TODO: Obtener el ID del admin desde la API
+              // Crear chat sin adminId - el backend lo asignará automáticamente
               const res = await api.chats.create({
-                adminId,
                 tipo: 'empresa-admin',
               });
-              window.location.href = `/empresa/chat-admin/${res.data.id}`;
+              if (res.data?.id) {
+                window.location.href = `/empresa/chat-admin/${res.data.id}`;
+              } else {
+                toast.error("No se pudo crear el chat");
+              }
             } catch (error: any) {
               toast.error(error.message || "Error al crear chat con soporte");
             }
@@ -109,9 +111,7 @@ export default function EmpresaChatAdmin() {
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha), "HH:mm", {
-                              locale: es,
-                            })}
+                            {ultimoMensaje.createdAt || ultimoMensaje.fecha ? format(new Date(ultimoMensaje.createdAt || ultimoMensaje.fecha!), "HH:mm", { locale: es }) : '--:--'}
                           </span>
                         )}
                       </div>

@@ -238,7 +238,7 @@ const Empresas = () => {
                           <Building2 className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">{negocio.nombre}</p>
+                          <p className="font-medium">{negocio.nombre || 'Negocio'}</p>
                           <p className="text-sm text-muted-foreground">{negocio.telefono}</p>
                         </div>
                       </div>
@@ -260,7 +260,7 @@ const Empresas = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(negocio.fechaRegistro).toLocaleDateString()}
+                      {negocio.fechaRegistro ? new Date(negocio.fechaRegistro).toLocaleDateString() : '--'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -270,7 +270,7 @@ const Empresas = () => {
                           onClick={() => {
                             setSelectedNegocio({
                               id: negocio.id,
-                              nombre: negocio.nombre,
+                              nombre: negocio.nombre || 'Negocio',
                               estado: negocio.estado,
                               empresa: negocio.empresa,
                             });

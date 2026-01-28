@@ -73,8 +73,11 @@ const Favoritos = () => {
                   {negocio.foto && (
                     <img
                       src={negocio.foto}
-                      alt={negocio.nombre}
+                      alt={negocio.nombre || 'Negocio'}
                       className="aspect-video w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   )}
                   <Button
@@ -87,7 +90,7 @@ const Favoritos = () => {
                   </Button>
                 </div>
                 <CardContent className="p-5">
-                  <h3 className="mb-2 text-xl font-semibold">{negocio.nombre}</h3>
+                  <h3 className="mb-2 text-xl font-semibold">{negocio.nombre || 'Negocio'}</h3>
 
                   <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">
                     {negocio.ciudad && (

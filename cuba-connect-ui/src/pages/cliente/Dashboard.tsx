@@ -107,8 +107,11 @@ const Dashboard = () => {
                     {reserva.negocio?.foto && (
                       <img
                         src={reserva.negocio.foto}
-                        alt={reserva.negocio.nombre}
+                        alt={reserva.negocio?.nombre || 'Negocio'}
                         className="h-16 w-16 rounded-lg object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     )}
                     <div>
@@ -117,7 +120,7 @@ const Dashboard = () => {
                       <div className="mt-1 flex items-center space-x-2 text-sm text-muted-foreground">
                         <Calendar size={14} />
                         <span>
-                          {new Date(reserva.fecha).toLocaleDateString()} - {reserva.hora}
+                          {reserva.fecha ? new Date(reserva.fecha).toLocaleDateString() : '--'} - {reserva.hora || '--'}
                         </span>
                       </div>
                     </div>

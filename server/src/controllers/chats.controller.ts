@@ -207,8 +207,10 @@ export const createChat = async (req: AuthRequest, res: Response) => {
     }
   }
 
-  // Buscar chat existente
+  // Buscar chat existente y obtener adminId si es necesario
   let existingChat;
+  let finalAdminId: number | null = null;
+  
   if (chatType === 'cliente-empresa') {
     existingChat = await prisma.chat.findFirst({
       where: {
@@ -218,22 +220,38 @@ export const createChat = async (req: AuthRequest, res: Response) => {
         tipo: 'cliente-empresa',
       },
     });
-  } else if (chatType === 'empresa-admin') {
-    existingChat = await prisma.chat.findFirst({
-      where: {
-        empresaId: req.user.id,
-        adminId: parseInt(adminId),
-        tipo: 'empresa-admin',
-      },
-    });
-  } else if (chatType === 'cliente-admin') {
-    existingChat = await prisma.chat.findFirst({
-      where: {
-        clienteId: req.user.id,
-        adminId: parseInt(adminId),
-        tipo: 'cliente-admin',
-      },
-    });
+  } else if (chatType === 'empresa-admin' || chatType === 'cliente-admin') {
+    // Si no se proporciona adminId, buscar el primer admin disponible
+    finalAdminId = adminId ? parseInt(adminId) : null;
+    if (!finalAdminId) {
+      const firstAdmin = await prisma.user.findFirst({
+        where: { rol: 'admin' },
+        select: { id: true },
+      });
+      if (firstAdmin) {
+        finalAdminId = firstAdmin.id;
+      } else {
+        throw new AppError('No hay administradores disponibles', 404);
+      }
+    }
+    
+    if (chatType === 'empresa-admin') {
+      existingChat = await prisma.chat.findFirst({
+        where: {
+          empresaId: req.user.id,
+          adminId: finalAdminId,
+          tipo: 'empresa-admin',
+        },
+      });
+    } else {
+      existingChat = await prisma.chat.findFirst({
+        where: {
+          clienteId: req.user.id,
+          adminId: finalAdminId,
+          tipo: 'cliente-admin',
+        },
+      });
+    }
   }
 
   if (existingChat) {
@@ -254,10 +272,10 @@ export const createChat = async (req: AuthRequest, res: Response) => {
     if (negocioId) chatData.negocioId = parseInt(negocioId);
   } else if (chatType === 'empresa-admin') {
     chatData.empresaId = req.user.id;
-    chatData.adminId = parseInt(adminId);
+    chatData.adminId = finalAdminId!; // Ya calculado arriba
   } else if (chatType === 'cliente-admin') {
     chatData.clienteId = req.user.id;
-    chatData.adminId = parseInt(adminId);
+    chatData.adminId = finalAdminId!; // Ya calculado arriba
   }
 
   const chat = await prisma.chat.create({

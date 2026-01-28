@@ -60,8 +60,11 @@ const Reservas = () => {
               {reserva.negocio?.foto && (
                 <img
                   src={reserva.negocio.foto}
-                  alt={reserva.negocio.nombre}
+                  alt={reserva.negocio?.nombre || 'Negocio'}
                   className="h-20 w-20 rounded-lg object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               )}
               <div>
@@ -70,12 +73,12 @@ const Reservas = () => {
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   <div className="flex items-center">
                     <Clock size={14} className="mr-1" />
-                    {new Date(reserva.fecha).toLocaleDateString()} - {reserva.hora}
+                    {reserva.fecha ? new Date(reserva.fecha).toLocaleDateString() : '--'} - {reserva.hora || '--'}
                   </div>
-                  {reserva.negocio?.ciudad && (
+                  {(reserva.negocio?.municipio || reserva.negocio?.provincia) && (
                     <div className="flex items-center">
                       <MapPin size={14} className="mr-1" />
-                      {reserva.negocio.ciudad}
+                      {reserva.negocio.municipio?.nombre || ''}{reserva.negocio.provincia?.nombre ? `, ${reserva.negocio.provincia.nombre}` : ''}
                     </div>
                   )}
                 </div>

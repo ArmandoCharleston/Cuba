@@ -32,9 +32,18 @@ const NegocioDetalle = () => {
       try {
         setLoading(true);
         setError(null);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NegocioDetalle.tsx:32',message:'Fetching negocio',data:{negocioId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         const response = await api.negocios.getById(id);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NegocioDetalle.tsx:36',message:'API response received',data:{hasData:!!response.data,hasProvincia:!!response.data?.provincia,hasMunicipio:!!response.data?.municipio,provinciaNombre:response.data?.provincia?.nombre,municipioNombre:response.data?.municipio?.nombre},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,C'})}).catch(()=>{});
+        // #endregion
         setNegocio(response.data);
       } catch (err: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NegocioDetalle.tsx:40',message:'Error fetching negocio',data:{error:err?.message,errorType:typeof err},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         setError(err.message || "Error al cargar el negocio");
       } finally {
         setLoading(false);
@@ -124,7 +133,7 @@ const NegocioDetalle = () => {
                   {mainFoto ? (
                     <img
                       src={mainFoto}
-                      alt={negocio.nombre}
+                      alt={negocio.nombre || 'Negocio'}
                       className="h-[400px] w-full rounded-lg object-cover"
                     />
                   ) : (
@@ -155,7 +164,7 @@ const NegocioDetalle = () => {
             <div>
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <h1 className="mb-2 text-4xl font-bold">{negocio.nombre}</h1>
+                  <h1 className="mb-2 text-4xl font-bold">{negocio.nombre || 'Negocio'}</h1>
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <MapPin size={16} />
                     <span>{negocio.direccion}</span>
@@ -233,7 +242,10 @@ const NegocioDetalle = () => {
                   <div className="flex items-center space-x-3">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <span>
-                      {negocio.direccion}, {negocio.municipio?.nombre || ''}{negocio.provincia?.nombre ? `, ${negocio.provincia.nombre}` : ''}
+                      {/* #region agent log */}
+                      {(()=>{fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NegocioDetalle.tsx:236',message:'Rendering location',data:{hasMunicipio:!!negocio?.municipio,hasProvincia:!!negocio?.provincia,municipioNombre:negocio?.municipio?.nombre,provinciaNombre:negocio?.provincia?.nombre},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});return null;})()}
+                      {/* #endregion */}
+                      {negocio.direccion}{negocio.municipio?.nombre ? `, ${negocio.municipio.nombre}` : ''}{negocio.provincia?.nombre ? `, ${negocio.provincia.nombre}` : ''}
                     </span>
                   </div>
                 </div>
@@ -262,7 +274,7 @@ const NegocioDetalle = () => {
                           </div>
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(resena.createdAt).toLocaleDateString()}
+                          {resena.createdAt ? new Date(resena.createdAt).toLocaleDateString() : '--'}
                         </span>
                       </div>
                       <p className="text-muted-foreground">{resena.comentario}</p>

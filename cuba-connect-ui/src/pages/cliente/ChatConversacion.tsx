@@ -34,11 +34,20 @@ export default function ClienteChatConversacion() {
       try {
         if (!id) return;
         setLoading(true);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:37',message:'Fetching chat',data:{chatId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         const res = await api.chats.getById(id);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:40',message:'API response received',data:{hasData:!!res.data,hasNegocio:!!res.data?.negocio,negocioFoto:res.data?.negocio?.foto,negocioNombre:res.data?.negocio?.nombre},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+        // #endregion
         setChat(res.data);
         setMensajes(res.data.mensajes || []);
         setNegocio(res.data.negocio || null);
       } catch (e: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:45',message:'Error fetching chat',data:{error:e?.message,errorType:typeof e},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         toast.error(e.message || "No se pudo cargar el chat");
       } finally {
         setLoading(false);
@@ -94,14 +103,25 @@ export default function ClienteChatConversacion() {
             </Button>
           </Link>
           <Avatar className="h-10 w-10">
-            <img
-              src={negocio.foto}
-              alt={negocio.nombre}
-              className="object-cover"
-            />
+            {/* #region agent log */}
+            {(()=>{fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:98',message:'Rendering negocio foto',data:{hasFoto:!!negocio?.foto,fotoValue:negocio?.foto,hasNombre:!!negocio?.nombre},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});return null;})()}
+            {/* #endregion */}
+            {negocio.foto ? (
+              <img
+                src={negocio.foto}
+                alt={negocio.nombre || 'Negocio'}
+                className="object-cover"
+                onError={(e) => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:103',message:'Image load error',data:{fotoUrl:negocio?.foto},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                  // #endregion
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : null}
           </Avatar>
           <div className="flex-1">
-            <h2 className="font-semibold">{negocio.nombre}</h2>
+            <h2 className="font-semibold">{negocio.nombre || 'Negocio'}</h2>
             <p className="text-xs text-muted-foreground">
               {escribiendo ? "Escribiendo..." : "En línea"}
             </p>
@@ -136,7 +156,10 @@ export default function ClienteChatConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
+                {/* #region agent log */}
+                {(()=>{const dateStr=mensaje.createdAt||mensaje.fecha;fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ChatConversacion.tsx:142',message:'Formatting date',data:{hasCreatedAt:!!mensaje.createdAt,hasFecha:!!mensaje.fecha,dateStr},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});return null;})()}
+                {/* #endregion */}
+                {mensaje.createdAt || mensaje.fecha ? format(new Date(mensaje.createdAt || mensaje.fecha!), "HH:mm", { locale: es }) : '--:--'}
               </p>
             </div>
           </div>

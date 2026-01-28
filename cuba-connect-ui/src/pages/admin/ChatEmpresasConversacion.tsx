@@ -96,8 +96,11 @@ export default function AdminChatEmpresasConversacion() {
             {negocio?.foto ? (
               <img
                 src={negocio.foto}
-                alt={negocio.nombre}
+                alt={negocio.nombre || 'Negocio'}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-full h-full bg-primary/10 flex items-center justify-center">
@@ -137,7 +140,7 @@ export default function AdminChatEmpresasConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
+                {mensaje.createdAt || mensaje.fecha ? format(new Date(mensaje.createdAt || mensaje.fecha!), "HH:mm", { locale: es }) : '--:--'}
               </p>
             </div>
           </div>

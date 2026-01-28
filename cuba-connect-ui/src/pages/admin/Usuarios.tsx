@@ -179,7 +179,7 @@ const Usuarios = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {new Date(usuario.createdAt).toLocaleDateString()}
+                        {usuario.createdAt ? new Date(usuario.createdAt).toLocaleDateString() : '--'}
                       </td>
                       <td className="px-6 py-4">
                         <DropdownMenu>

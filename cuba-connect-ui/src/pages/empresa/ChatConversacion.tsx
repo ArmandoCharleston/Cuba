@@ -97,8 +97,11 @@ export default function EmpresaChatConversacion() {
             {cliente.avatar ? (
               <img
                 src={cliente.avatar}
-                alt={cliente.nombre}
+                alt={cliente.nombre || 'Cliente'}
                 className="object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-full h-full bg-primary/10 flex items-center justify-center">
@@ -146,7 +149,7 @@ export default function EmpresaChatConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
+                {mensaje.createdAt || mensaje.fecha ? format(new Date(mensaje.createdAt || mensaje.fecha!), "HH:mm", { locale: es }) : '--:--'}
               </p>
             </div>
           </div>

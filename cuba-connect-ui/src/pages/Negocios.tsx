@@ -205,8 +205,11 @@ const Negocios = () => {
                     {fotoUrl ? (
                       <img
                         src={fotoUrl}
-                        alt={negocio.nombre}
+                        alt={negocio.nombre || 'Negocio'}
                         className="h-full w-full object-cover transition-transform hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-muted">
@@ -216,7 +219,7 @@ const Negocios = () => {
                   </div>
                   <CardContent className="p-5">
                     <div className="mb-2 flex items-start justify-between">
-                      <h3 className="text-xl font-semibold">{negocio.nombre}</h3>
+                      <h3 className="text-xl font-semibold">{negocio.nombre || 'Negocio'}</h3>
                     </div>
 
                     <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">

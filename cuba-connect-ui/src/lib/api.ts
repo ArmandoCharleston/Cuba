@@ -29,6 +29,9 @@ const request = async <T>(
 
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:31',message:'API error response',data:{status:response.status,statusText:response.statusText,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       let errorMessage = 'Ocurrió un error';
       try {
         const errorData = await response.json();
@@ -103,8 +106,14 @@ const request = async <T>(
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:105',message:'API success response',data:{hasData:!!data,dataKeys:data?Object.keys(data):[],endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       return data;
     } else {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:110',message:'Non-JSON response',data:{contentType,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       // If not JSON, return empty object or handle accordingly
       return {} as T;
     }

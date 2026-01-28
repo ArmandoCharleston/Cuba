@@ -137,7 +137,7 @@ export default function AdminChatClientesConversacion() {
                     : "text-muted-foreground"
                 }`}
               >
-                {format(new Date(mensaje.createdAt || mensaje.fecha), "HH:mm", { locale: es })}
+                {mensaje.createdAt || mensaje.fecha ? format(new Date(mensaje.createdAt || mensaje.fecha!), "HH:mm", { locale: es }) : '--:--'}
               </p>
             </div>
           </div>

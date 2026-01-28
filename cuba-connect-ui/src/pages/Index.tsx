@@ -167,12 +167,15 @@ const Index = () => {
                     <div className="aspect-video overflow-hidden">
                       <img
                         src={negocio.foto || "/placeholder.svg"}
-                        alt={negocio.nombre}
+                        alt={negocio.nombre || 'Negocio'}
                         className="h-full w-full object-cover transition-transform hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
                       />
                     </div>
                     <CardContent className="p-5">
-                      <h3 className="mb-2 text-xl font-semibold">{negocio.nombre}</h3>
+                      <h3 className="mb-2 text-xl font-semibold">{negocio.nombre || 'Negocio'}</h3>
                       <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
                         {negocio.descripcion}
                       </p>

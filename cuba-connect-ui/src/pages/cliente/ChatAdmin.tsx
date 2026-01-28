@@ -75,9 +75,7 @@ export default function ClienteChatAdmin() {
                         </h3>
                         {ultimoMensaje && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                            {format(new Date(ultimoMensaje.fecha), "HH:mm", {
-                              locale: es,
-                            })}
+                            {ultimoMensaje.fecha || ultimoMensaje.createdAt ? format(new Date(ultimoMensaje.fecha || ultimoMensaje.createdAt!), "HH:mm", { locale: es }) : '--:--'}
                           </span>
                         )}
                       </div>
