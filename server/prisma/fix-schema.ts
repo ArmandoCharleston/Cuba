@@ -6,20 +6,25 @@ async function fixSchema() {
   try {
     console.log('🔧 Preparando base de datos...');
 
-    // Verificar y eliminar foreign key constraint si existe
-    const fkCheck = await prisma.$queryRawUnsafe<Array<{COUNT: bigint}>>(
-      `SELECT COUNT(*) as COUNT FROM information_schema.TABLE_CONSTRAINTS 
+    // Encontrar y eliminar TODAS las foreign keys de la tabla chats
+    const allFks = await prisma.$queryRawUnsafe<Array<{CONSTRAINT_NAME: string}>>(
+      `SELECT CONSTRAINT_NAME 
+       FROM information_schema.TABLE_CONSTRAINTS 
        WHERE CONSTRAINT_SCHEMA = DATABASE() 
        AND TABLE_NAME = 'chats' 
-       AND CONSTRAINT_NAME = 'chats_negocioId_fkey'`
+       AND CONSTRAINT_TYPE = 'FOREIGN KEY'`
     );
     
-    if (fkCheck[0]?.COUNT > 0) {
-      console.log('   Eliminando foreign key chats_negocioId_fkey...');
-      await prisma.$executeRawUnsafe(`ALTER TABLE \`chats\` DROP FOREIGN KEY \`chats_negocioId_fkey\``);
+    for (const fk of allFks) {
+      try {
+        console.log(`   Eliminando foreign key ${fk.CONSTRAINT_NAME}...`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`chats\` DROP FOREIGN KEY \`${fk.CONSTRAINT_NAME}\``);
+      } catch (error: any) {
+        console.log(`   ⚠️ No se pudo eliminar ${fk.CONSTRAINT_NAME}: ${error?.message || error}`);
+      }
     }
 
-    // Verificar y eliminar el índice único si existe
+    // Verificar y eliminar el índice único si existe (ahora que las FKs están eliminadas)
     const indexCheck = await prisma.$queryRawUnsafe<Array<{COUNT: bigint}>>(
       `SELECT COUNT(*) as COUNT FROM information_schema.STATISTICS 
        WHERE TABLE_SCHEMA = DATABASE() 
