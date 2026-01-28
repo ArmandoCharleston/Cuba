@@ -191,12 +191,16 @@ export const createChat = async (req: AuthRequest, res: Response) => {
     throw new AppError('Not authenticated', 401);
   }
 
-  const { empresaId, negocioId, adminId, tipo } = req.body;
+  const { empresaId, negocioId, adminId, tipo, clienteId } = req.body;
 
   // Determinar tipo de chat si no se especifica
   let chatType = tipo;
   if (!chatType) {
-    if (req.user.rol === 'cliente' && empresaId) {
+    if (req.user.rol === 'admin' && clienteId) {
+      chatType = 'cliente-admin';
+    } else if (req.user.rol === 'admin' && empresaId) {
+      chatType = 'empresa-admin';
+    } else if (req.user.rol === 'cliente' && empresaId) {
       chatType = 'cliente-empresa';
     } else if (req.user.rol === 'empresa') {
       chatType = 'empresa-admin'; // Para empresas, siempre es con admin
@@ -219,39 +223,51 @@ export const createChat = async (req: AuthRequest, res: Response) => {
   if (chatType === 'cliente-empresa') {
     existingChat = await prisma.chat.findFirst({
       where: {
-        clienteId: req.user.id,
-        empresaId: parseInt(empresaId),
+        clienteId: req.user.rol === 'cliente' ? req.user.id : (clienteId ? parseInt(clienteId) : undefined),
+        empresaId: req.user.rol === 'empresa' ? req.user.id : (empresaId ? parseInt(empresaId) : undefined),
         negocioId: negocioId ? parseInt(negocioId) : undefined,
         tipo: 'cliente-empresa',
       },
     });
   } else if (chatType === 'empresa-admin' || chatType === 'cliente-admin') {
-    // Si no se proporciona adminId, buscar el primer admin disponible
-    finalAdminId = adminId ? parseInt(adminId) : null;
-    if (!finalAdminId) {
-      const firstAdmin = await prisma.user.findFirst({
-        where: { rol: 'admin' },
-        select: { id: true },
-      });
-      if (firstAdmin) {
-        finalAdminId = firstAdmin.id;
-      } else {
-        throw new AppError('No hay administradores disponibles', 404);
+    // Si no se proporciona adminId, usar el admin actual o buscar el primero disponible
+    if (req.user.rol === 'admin') {
+      finalAdminId = req.user.id;
+    } else {
+      finalAdminId = adminId ? parseInt(adminId) : null;
+      if (!finalAdminId) {
+        const firstAdmin = await prisma.user.findFirst({
+          where: { rol: 'admin' },
+          select: { id: true },
+        });
+        if (firstAdmin) {
+          finalAdminId = firstAdmin.id;
+        } else {
+          throw new AppError('No hay administradores disponibles', 404);
+        }
       }
     }
     
     if (chatType === 'empresa-admin') {
+      const targetEmpresaId = req.user.rol === 'empresa' ? req.user.id : (empresaId ? parseInt(empresaId) : undefined);
+      if (!targetEmpresaId) {
+        throw new AppError('empresaId es requerido', 400);
+      }
       existingChat = await prisma.chat.findFirst({
         where: {
-          empresaId: req.user.id,
+          empresaId: targetEmpresaId,
           adminId: finalAdminId,
           tipo: 'empresa-admin',
         },
       });
     } else {
+      const targetClienteId = req.user.rol === 'cliente' ? req.user.id : (clienteId ? parseInt(clienteId) : undefined);
+      if (!targetClienteId) {
+        throw new AppError('clienteId es requerido', 400);
+      }
       existingChat = await prisma.chat.findFirst({
         where: {
-          clienteId: req.user.id,
+          clienteId: targetClienteId,
           adminId: finalAdminId,
           tipo: 'cliente-admin',
         },
@@ -272,17 +288,28 @@ export const createChat = async (req: AuthRequest, res: Response) => {
   };
 
   if (chatType === 'cliente-empresa') {
-    if (!empresaId) {
-      throw new AppError('empresaId es requerido para chats cliente-empresa', 400);
+    const targetClienteId = req.user.rol === 'cliente' ? req.user.id : (clienteId ? parseInt(clienteId) : undefined);
+    const targetEmpresaId = req.user.rol === 'empresa' ? req.user.id : (empresaId ? parseInt(empresaId) : undefined);
+    
+    if (!targetClienteId || !targetEmpresaId) {
+      throw new AppError('clienteId y empresaId son requeridos para chats cliente-empresa', 400);
     }
-    chatData.clienteId = req.user.id;
-    chatData.empresaId = parseInt(empresaId);
+    chatData.clienteId = targetClienteId;
+    chatData.empresaId = targetEmpresaId;
     if (negocioId) chatData.negocioId = parseInt(negocioId);
   } else if (chatType === 'empresa-admin') {
-    chatData.empresaId = req.user.id;
+    const targetEmpresaId = req.user.rol === 'empresa' ? req.user.id : (empresaId ? parseInt(empresaId) : undefined);
+    if (!targetEmpresaId) {
+      throw new AppError('empresaId es requerido', 400);
+    }
+    chatData.empresaId = targetEmpresaId;
     chatData.adminId = finalAdminId!; // Ya calculado arriba
   } else if (chatType === 'cliente-admin') {
-    chatData.clienteId = req.user.id;
+    const targetClienteId = req.user.rol === 'cliente' ? req.user.id : (clienteId ? parseInt(clienteId) : undefined);
+    if (!targetClienteId) {
+      throw new AppError('clienteId es requerido', 400);
+    }
+    chatData.clienteId = targetClienteId;
     chatData.adminId = finalAdminId!; // Ya calculado arriba
   }
 

@@ -379,6 +379,7 @@ export const api = {
     },
 
     create: async (data: {
+      clienteId?: string;
       empresaId?: string;
       negocioId?: string;
       adminId?: string;
