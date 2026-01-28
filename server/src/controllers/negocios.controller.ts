@@ -234,7 +234,7 @@ export const createNegocio = async (req: AuthRequest, res: Response) => {
       telefono,
       email,
       descripcion,
-      categoriaId: parseInt(categoriaId),
+      categoriaId: categoriaId ? parseInt(categoriaId) : undefined,
       provinciaId: parseInt(provinciaId),
       municipioId: parseInt(municipioId),
       propietarioId: req.user.id,

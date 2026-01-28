@@ -1,76 +1,74 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Users, Building2, Calendar, DollarSign } from "lucide-react";
+import { TrendingUp, Users, Building2, Calendar, DollarSign, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 const Reportes = () => {
-  // Mock data para gráficos
-  const reservasData = [
-    { mes: "Ene", reservas: 45, canceladas: 8 },
-    { mes: "Feb", reservas: 52, canceladas: 12 },
-    { mes: "Mar", reservas: 68, canceladas: 10 },
-    { mes: "Abr", reservas: 71, canceladas: 9 },
-    { mes: "May", reservas: 85, canceladas: 15 },
-    { mes: "Jun", reservas: 92, canceladas: 11 },
-  ];
+  const [stats, setStats] = useState({
+    totalUsuarios: 0,
+    totalNegocios: 0,
+    totalReservas: 0,
+    totalResenas: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const ingresosData = [
-    { mes: "Ene", ingresos: 12500 },
-    { mes: "Feb", ingresos: 15200 },
-    { mes: "Mar", ingresos: 18900 },
-    { mes: "Abr", ingresos: 21400 },
-    { mes: "May", ingresos: 24800 },
-    { mes: "Jun", ingresos: 28300 },
-  ];
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
-  const categoriasData = [
-    { nombre: "Peluquería", valor: 35 },
-    { nombre: "Spa", valor: 25 },
-    { nombre: "Belleza", valor: 20 },
-    { nombre: "Fitness", valor: 12 },
-    { nombre: "Otros", valor: 8 },
-  ];
-
-  const ciudadesData = [
-    { nombre: "La Habana", usuarios: 450, empresas: 85 },
-    { nombre: "Varadero", usuarios: 320, empresas: 62 },
-    { nombre: "Santiago", usuarios: 280, empresas: 48 },
-    { nombre: "Holguín", usuarios: 195, empresas: 35 },
-    { nombre: "Camagüey", usuarios: 160, empresas: 28 },
-  ];
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await api.admin.getDashboard();
+      setStats({
+        totalUsuarios: response.data.totalUsuarios || 0,
+        totalNegocios: response.data.totalNegocios || 0,
+        totalReservas: response.data.totalReservas || 0,
+        totalResenas: response.data.totalResenas || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
 
-  const stats = [
+  const statsCards = [
     {
       title: "Total Usuarios",
-      value: "1,405",
+      value: loading ? <Loader2 className="h-8 w-8 animate-spin" /> : stats.totalUsuarios.toLocaleString(),
       icon: Users,
-      trend: "+12.5%",
       color: "text-primary",
     },
     {
       title: "Empresas Activas",
-      value: "258",
+      value: loading ? <Loader2 className="h-8 w-8 animate-spin" /> : stats.totalNegocios.toLocaleString(),
       icon: Building2,
-      trend: "+8.2%",
       color: "text-secondary",
     },
     {
       title: "Reservas Totales",
-      value: "413",
+      value: loading ? <Loader2 className="h-8 w-8 animate-spin" /> : stats.totalReservas.toLocaleString(),
       icon: Calendar,
-      trend: "+15.3%",
       color: "text-accent",
     },
     {
-      title: "Ingresos Totales",
-      value: "$121,200",
+      title: "Reseñas Totales",
+      value: loading ? <Loader2 className="h-8 w-8 animate-spin" /> : stats.totalResenas.toLocaleString(),
       icon: DollarSign,
-      trend: "+22.1%",
       color: "text-chart-2",
     },
   ];
+
+  // Datos vacíos para gráficos (se pueden implementar después con endpoints específicos)
+  const reservasData: any[] = [];
+  const ingresosData: any[] = [];
+  const categoriasData: any[] = [];
+  const ciudadesData: any[] = [];
 
   return (
     <div className="space-y-8">
@@ -81,7 +79,7 @@ const Reportes = () => {
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
+        {statsCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title}>
@@ -91,11 +89,6 @@ const Reportes = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{stat.value}</div>
-                <div className="mt-1 flex items-center text-sm">
-                  <TrendingUp className="mr-1 h-4 w-4 text-primary" />
-                  <span className="text-primary">{stat.trend}</span>
-                  <span className="ml-1 text-muted-foreground">vs mes anterior</span>
-                </div>
               </CardContent>
             </Card>
           );
@@ -117,17 +110,23 @@ const Reportes = () => {
               <CardTitle>Reservas Mensuales</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={reservasData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="reservas" fill="hsl(var(--primary))" name="Reservas" />
-                  <Bar dataKey="canceladas" fill="hsl(var(--destructive))" name="Canceladas" />
-                </BarChart>
-              </ResponsiveContainer>
+              {reservasData.length === 0 ? (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                  No hay datos de reservas disponibles
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={reservasData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="reservas" fill="hsl(var(--primary))" name="Reservas" />
+                    <Bar dataKey="canceladas" fill="hsl(var(--destructive))" name="Canceladas" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -138,27 +137,37 @@ const Reportes = () => {
               <CardTitle>Evolución de Ingresos</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={ingresosData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" strokeWidth={2} name="Ingresos ($)" />
-                </LineChart>
-              </ResponsiveContainer>
+              {ingresosData.length === 0 ? (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                  No hay datos de ingresos disponibles
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={ingresosData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" strokeWidth={2} name="Ingresos ($)" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="categorias" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Distribución por Categoría</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Categoría</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {categoriasData.length === 0 ? (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                  No hay datos de categorías disponibles
+                </div>
+              ) : (
                 <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <Pie
@@ -178,55 +187,34 @@ const Reportes = () => {
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Popularidad de Categorías</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {categoriasData.map((cat, index) => (
-                    <div key={cat.nombre} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{cat.nombre}</span>
-                        <span className="text-muted-foreground">{cat.valor}%</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${cat.valor}%`,
-                            backgroundColor: COLORS[index % COLORS.length],
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="ciudades" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Usuarios y Empresas por Ciudad</CardTitle>
+              <CardTitle>Usuarios y Empresas por Provincia</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={ciudadesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nombre" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="usuarios" fill="hsl(var(--primary))" name="Usuarios" />
-                  <Bar dataKey="empresas" fill="hsl(var(--secondary))" name="Empresas" />
-                </BarChart>
-              </ResponsiveContainer>
+              {ciudadesData.length === 0 ? (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                  No hay datos de provincias disponibles
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={ciudadesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="nombre" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="usuarios" fill="hsl(var(--primary))" name="Usuarios" />
+                    <Bar dataKey="empresas" fill="hsl(var(--secondary))" name="Empresas" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

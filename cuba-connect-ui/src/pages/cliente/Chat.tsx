@@ -1,31 +1,84 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function ClienteChat() {
+  const navigate = useNavigate();
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [negocios, setNegocios] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const response = await api.chats.getAll();
-        setChats(response.data || []);
-      } catch (error) {
-        console.error('Error fetching chats:', error);
-        setChats([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchChats();
+    fetchNegocios();
   }, []);
+
+  const fetchChats = async () => {
+    try {
+      const response = await api.chats.getAll();
+      setChats(response.data || []);
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      setChats([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNegocios = async () => {
+    try {
+      const response = await api.negocios.getAll({ limit: 100 });
+      setNegocios(response.data || []);
+    } catch (error) {
+      console.error('Error fetching negocios:', error);
+      setNegocios([]);
+    }
+  };
+
+  const handleCreateChat = async (negocioId: number) => {
+    try {
+      setCreating(true);
+      // Buscar si ya existe un chat con este negocio
+      const existingChat = chats.find(c => c.negocioId === negocioId);
+      if (existingChat) {
+        navigate(`/cliente/chat/${existingChat.id}`);
+        setDialogOpen(false);
+        return;
+      }
+      
+      // Crear nuevo chat
+      const response = await api.chats.create({
+        negocioId: negocioId.toString(),
+        tipo: 'cliente-empresa',
+      });
+      
+      toast.success('Chat creado exitosamente');
+      navigate(`/cliente/chat/${response.data.id}`);
+      setDialogOpen(false);
+      fetchChats();
+    } catch (error: any) {
+      toast.error(error.message || 'Error al crear el chat');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const negociosFiltrados = negocios.filter(n => 
+    n.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    n.descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -36,6 +89,71 @@ export default function ClienteChat() {
             Conversaciones con negocios
           </p>
         </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Chat
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Seleccionar Negocio</DialogTitle>
+              <DialogDescription>
+                Elige un negocio para iniciar una conversación
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar negocio..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {negociosFiltrados.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No se encontraron negocios
+                  </p>
+                ) : (
+                  negociosFiltrados.map((negocio) => (
+                    <Card
+                      key={negocio.id}
+                      className="cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => handleCreateChat(negocio.id)}
+                    >
+                      <CardContent className="flex items-center gap-4 p-4">
+                        {negocio.foto ? (
+                          <img
+                            src={negocio.foto}
+                            alt={negocio.nombre}
+                            className="w-12 h-12 rounded-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <MessageSquare className="h-6 w-6 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{negocio.nombre}</h3>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {negocio.descripcion || negocio.categoria?.nombre || 'Sin descripción'}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (

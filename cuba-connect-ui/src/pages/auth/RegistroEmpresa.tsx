@@ -90,20 +90,43 @@ const RegistroEmpresa = () => {
       toast.error("Las contraseñas no coinciden");
       return;
     }
+    if (!formData.nombreNegocio || !formData.direccion || !formData.provincia || !formData.municipio) {
+      toast.error("Por favor completa todos los campos requeridos del negocio");
+      return;
+    }
     try {
       setLoading(true);
+      // 1. Registrar el usuario con rol empresa
       await register({
         nombre: formData.nombreContacto,
         apellido: formData.apellidoContacto,
         email: formData.email,
         telefono: formData.telefono || undefined,
-        ciudad: formData.ciudad || undefined,
         password: formData.password,
         rol: "empresa",
       });
-      toast.success("Cuenta de empresa creada exitosamente! Puedes agregar los detalles del negocio en tu panel.");
-      // Nota: La creación detallada del negocio (nombreNegocio, categoría, etc.)
-      // se puede manejar en el panel de empresa con formularios adicionales.
+      
+      // 2. Crear el negocio directamente
+      const fotoBase64 = fotoFile ? await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(fotoFile);
+      }) : undefined;
+
+      await api.negocios.create({
+        nombre: formData.nombreNegocio,
+        direccion: formData.direccion,
+        telefono: formData.telefono || "",
+        email: formData.email,
+        descripcion: "",
+        categoriaId: formData.categoria ? parseInt(formData.categoria) : undefined,
+        provinciaId: parseInt(formData.provincia),
+        municipioId: parseInt(formData.municipio),
+        foto: fotoBase64,
+      });
+      
+      toast.success("Empresa y negocio registrados exitosamente! Tu negocio está pendiente de aprobación.");
     } catch (error: any) {
       toast.error(error.message || "Error al registrar la empresa");
     } finally {

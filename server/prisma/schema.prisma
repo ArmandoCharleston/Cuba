@@ -99,7 +99,7 @@ model Negocio {
   email          String
   descripcion    String?       @db.Text
   foto           String?
-  categoriaId    Int
+  categoriaId    Int?
   provinciaId    Int?
   municipioId    Int?
   propietarioId  Int
@@ -111,7 +111,7 @@ model Negocio {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  categoria   Categoria     @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  categoria   Categoria?    @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
   provincia   Provincia?    @relation(fields: [provinciaId], references: [id], onDelete: Cascade)
   municipio   Municipio?    @relation(fields: [municipioId], references: [id], onDelete: Cascade)
   propietario User          @relation(fields: [propietarioId], references: [id], onDelete: Cascade)

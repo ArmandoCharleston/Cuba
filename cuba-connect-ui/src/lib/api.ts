@@ -216,7 +216,7 @@ export const api = {
       telefono: string;
       email: string;
       descripcion?: string;
-      categoriaId: number;
+      categoriaId?: number;
       provinciaId: number;
       municipioId: number;
       foto?: string;
