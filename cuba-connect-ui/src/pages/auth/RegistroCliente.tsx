@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, User } from "lucide-react";
-import { ciudadesMock } from "@/data/ciudadesMock";
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 const RegistroCliente = () => {
   const { register } = useAuth();
+  const [ciudades, setCiudades] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -22,6 +23,19 @@ const RegistroCliente = () => {
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCiudades = async () => {
+      try {
+        const response = await api.ciudades.getAll();
+        setCiudades(response.data || []);
+      } catch (error) {
+        console.error('Error fetching ciudades:', error);
+      }
+    };
+
+    fetchCiudades();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,8 +147,8 @@ const RegistroCliente = () => {
                     required
                   >
                     <option value="">Selecciona</option>
-                    {ciudadesMock.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.id}>
+                    {ciudades.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.nombre}>
                         {ciudad.nombre}
                       </option>
                     ))}
