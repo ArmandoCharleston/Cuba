@@ -1,9 +1,8 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
-export const getAllProvincias = async (req: AuthRequest, res: Response) => {
+export const getAllProvincias = async (req: Request, res: Response) => {
   const provincias = await prisma.provincia.findMany({
     orderBy: { nombre: 'asc' },
     include: {
@@ -28,7 +27,7 @@ export const getAllProvincias = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getProvinciaById = async (req: AuthRequest, res: Response) => {
+export const getProvinciaById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const provincia = await prisma.provincia.findUnique({

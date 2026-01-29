@@ -1,9 +1,8 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
-export const getAllMunicipios = async (req: AuthRequest, res: Response) => {
+export const getAllMunicipios = async (req: Request, res: Response) => {
   const { provinciaId } = req.query;
 
   const where: any = {};
@@ -39,7 +38,7 @@ export const getAllMunicipios = async (req: AuthRequest, res: Response) => {
   });
 };
 
-export const getMunicipioById = async (req: AuthRequest, res: Response) => {
+export const getMunicipioById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const municipio = await prisma.municipio.findUnique({

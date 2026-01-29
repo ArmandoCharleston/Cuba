@@ -167,6 +167,29 @@ export const api = {
     },
   },
 
+  // Provincias
+  provincias: {
+    getAll: async () => {
+      return request<{ success: boolean; data: any[] }>('/provincias');
+    },
+
+    getById: async (id: string) => {
+      return request<{ success: boolean; data: any }>(`/provincias/${id}`);
+    },
+  },
+
+  // Municipios
+  municipios: {
+    getAll: async (provinciaId?: string) => {
+      const query = provinciaId ? `?provinciaId=${provinciaId}` : '';
+      return request<{ success: boolean; data: any[] }>(`/municipios${query}`);
+    },
+
+    getById: async (id: string) => {
+      return request<{ success: boolean; data: any }>(`/municipios/${id}`);
+    },
+  },
+
   // Servicios
   servicios: {
     getByNegocio: async (negocioId: string) => {
