@@ -11,13 +11,15 @@ import { api } from "@/lib/api";
 
 const RegistroCliente = () => {
   const { register } = useAuth();
-  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [municipios, setMunicipios] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
     email: "",
     telefono: "",
-    ciudad: "",
+    provincia: "",
+    municipio: "",
     password: "",
     confirmPassword: "",
   });
@@ -25,17 +27,39 @@ const RegistroCliente = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchCiudades = async () => {
+    const fetchProvincias = async () => {
       try {
-        const response = await api.ciudades.getAll();
-        setCiudades(response.data || []);
+        const response = await api.provincias.getAll();
+        setProvincias(response.data || []);
       } catch (error) {
-        console.error('Error fetching ciudades:', error);
+        console.error('Error fetching provincias:', error);
       }
     };
 
-    fetchCiudades();
+    fetchProvincias();
   }, []);
+
+  useEffect(() => {
+    const fetchMunicipios = async () => {
+      if (formData.provincia) {
+        try {
+          const municipiosRes = await api.municipios.getAll(formData.provincia);
+          if (municipiosRes && municipiosRes.data && Array.isArray(municipiosRes.data)) {
+            setMunicipios(municipiosRes.data);
+          } else {
+            setMunicipios([]);
+          }
+        } catch (error: any) {
+          console.error('Error fetching municipios:', error);
+          setMunicipios([]);
+        }
+      } else {
+        setMunicipios([]);
+        setFormData({ ...formData, municipio: "" });
+      }
+    };
+    fetchMunicipios();
+  }, [formData.provincia]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,14 +67,25 @@ const RegistroCliente = () => {
       toast.error("Las contraseñas no coinciden");
       return;
     }
+    if (!formData.provincia || !formData.municipio) {
+      toast.error("Por favor selecciona provincia y municipio");
+      return;
+    }
     try {
       setLoading(true);
+      // Obtener nombres de provincia y municipio para guardar en ciudad
+      const provinciaSeleccionada = provincias.find(p => p.id === parseInt(formData.provincia));
+      const municipioSeleccionado = municipios.find(m => m.id === parseInt(formData.municipio));
+      const ciudadTexto = municipioSeleccionado?.nombre && provinciaSeleccionada?.nombre 
+        ? `${municipioSeleccionado.nombre}, ${provinciaSeleccionada.nombre}`
+        : formData.municipio;
+      
       await register({
         nombre: formData.nombre,
         apellido: formData.apellido,
         email: formData.email,
         telefono: formData.telefono,
-        ciudad: formData.ciudad,
+        ciudad: ciudadTexto,
         password: formData.password,
         rol: "cliente",
       });
@@ -63,7 +98,12 @@ const RegistroCliente = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'provincia') {
+      setFormData({ ...formData, [name]: value, municipio: "" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   return (
@@ -137,22 +177,63 @@ const RegistroCliente = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ciudad">Ciudad *</Label>
+                  <Label htmlFor="provincia">Provincia *</Label>
                   <select
-                    id="ciudad"
-                    name="ciudad"
+                    id="provincia"
+                    name="provincia"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={formData.ciudad}
+                    value={formData.provincia}
                     onChange={handleChange}
                     required
                   >
-                    <option value="">Selecciona</option>
-                    {ciudades.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.nombre}>
-                        {ciudad.nombre}
+                    <option value="">Selecciona provincia</option>
+                    {provincias.map((provincia) => (
+                      <option key={provincia.id} value={provincia.id}>
+                        {provincia.nombre}
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="municipio">Municipio *</Label>
+                  {!formData.provincia ? (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background opacity-50"
+                      disabled
+                    >
+                      <option value="">Selecciona primero una provincia</option>
+                    </select>
+                  ) : municipios.length === 0 ? (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background opacity-50"
+                      disabled
+                    >
+                      <option value="">Cargando municipios...</option>
+                    </select>
+                  ) : (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={formData.municipio}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Selecciona municipio</option>
+                      {municipios.map((municipio) => (
+                        <option key={municipio.id} value={municipio.id}>
+                          {municipio.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 

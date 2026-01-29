@@ -11,29 +11,31 @@ import { api } from "@/lib/api";
 
 const Perfil = () => {
   const { user, updateUser } = useAuth();
-  const [ciudades, setCiudades] = useState<any[]>([]);
+  const [provincias, setProvincias] = useState<any[]>([]);
+  const [municipios, setMunicipios] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
     email: "",
     telefono: "",
-    ciudad: "",
+    provincia: "",
+    municipio: "",
   });
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
-    const fetchCiudades = async () => {
+    const fetchProvincias = async () => {
       try {
-        const response = await api.ciudades.getAll();
-        setCiudades(response.data || []);
+        const response = await api.provincias.getAll();
+        setProvincias(response.data || []);
       } catch (error) {
-        console.error('Error fetching ciudades:', error);
+        console.error('Error fetching provincias:', error);
       }
     };
 
-    fetchCiudades();
+    fetchProvincias();
 
     if (user) {
       setFormData({
@@ -41,13 +43,35 @@ const Perfil = () => {
         apellido: user.apellido || "",
         email: user.email || "",
         telefono: user.telefono || "",
-        ciudad: user.ciudad || "",
+        provincia: "",
+        municipio: "",
       });
       if (user.avatar) {
         setAvatarPreview(user.avatar);
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    const fetchMunicipios = async () => {
+      if (formData.provincia) {
+        try {
+          const municipiosRes = await api.municipios.getAll(formData.provincia);
+          if (municipiosRes && municipiosRes.data && Array.isArray(municipiosRes.data)) {
+            setMunicipios(municipiosRes.data);
+          } else {
+            setMunicipios([]);
+          }
+        } catch (error: any) {
+          console.error('Error fetching municipios:', error);
+          setMunicipios([]);
+        }
+      } else {
+        setMunicipios([]);
+      }
+    };
+    fetchMunicipios();
+  }, [formData.provincia]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,11 +86,19 @@ const Perfil = () => {
           reader.readAsDataURL(avatarFile);
         });
       }
+      
+      // Construir texto de ciudad desde provincia y municipio
+      const provinciaSeleccionada = provincias.find(p => p.id === parseInt(formData.provincia));
+      const municipioSeleccionado = municipios.find(m => m.id === parseInt(formData.municipio));
+      const ciudadTexto = municipioSeleccionado?.nombre && provinciaSeleccionada?.nombre 
+        ? `${municipioSeleccionado.nombre}, ${provinciaSeleccionada.nombre}`
+        : "";
+      
       await updateUser({
         nombre: formData.nombre,
         apellido: formData.apellido,
         telefono: formData.telefono,
-        ciudad: formData.ciudad,
+        ciudad: ciudadTexto,
         avatar: avatarBase64 || avatarPreview || undefined,
       });
       toast.success("Perfil actualizado exitosamente");
@@ -95,7 +127,12 @@ const Perfil = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'provincia') {
+      setFormData({ ...formData, [name]: value, municipio: "" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   return (
@@ -193,21 +230,61 @@ const Perfil = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ciudad">Ciudad</Label>
+                  <Label htmlFor="provincia">Provincia</Label>
                   <select
-                    id="ciudad"
-                    name="ciudad"
+                    id="provincia"
+                    name="provincia"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={formData.ciudad}
+                    value={formData.provincia}
                     onChange={handleChange}
                   >
-                    <option value="">Selecciona una ciudad</option>
-                    {ciudades.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.nombre}>
-                        {ciudad.nombre}
+                    <option value="">Selecciona provincia</option>
+                    {provincias.map((provincia) => (
+                      <option key={provincia.id} value={provincia.id}>
+                        {provincia.nombre}
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="municipio">Municipio</Label>
+                  {!formData.provincia ? (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50"
+                      disabled
+                    >
+                      <option value="">Selecciona primero una provincia</option>
+                    </select>
+                  ) : municipios.length === 0 ? (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50"
+                      disabled
+                    >
+                      <option value="">Cargando municipios...</option>
+                    </select>
+                  ) : (
+                    <select
+                      id="municipio"
+                      name="municipio"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={formData.municipio}
+                      onChange={handleChange}
+                    >
+                      <option value="">Selecciona municipio</option>
+                      {municipios.map((municipio) => (
+                        <option key={municipio.id} value={municipio.id}>
+                          {municipio.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
