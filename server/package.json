@@ -11,9 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:seed:prod": "tsx prisma/seed.ts",
-    "prisma:clean": "ts-node prisma/clean-db.ts"
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [
     "express",
@@ -31,7 +29,6 @@
     "express": "^4.21.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "tsx": "^4.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

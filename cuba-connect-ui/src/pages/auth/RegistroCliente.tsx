@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, User } from "lucide-react";
+import { ciudadesMock } from "@/data/ciudadesMock";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errorHandler";
 
 const RegistroCliente = () => {
   const { register } = useAuth();
@@ -22,30 +21,7 @@ const RegistroCliente = () => {
     confirmPassword: "",
   });
 
-  const [ciudades, setCiudades] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingCiudades, setLoadingCiudades] = useState(true);
-
-  useEffect(() => {
-    const fetchCiudades = async () => {
-      try {
-        const response = await api.ciudades.getAll();
-        if (response && response.data && Array.isArray(response.data)) {
-          setCiudades(response.data);
-        } else {
-          console.warn('Respuesta de ciudades no válida:', response);
-          setCiudades([]);
-        }
-      } catch (error: any) {
-        console.error('Error fetching ciudades:', error);
-        toast.error(getErrorMessage(error) || "Error al cargar ciudades. Puedes continuar sin seleccionar una ciudad.");
-        setCiudades([]);
-      } finally {
-        setLoadingCiudades(false);
-      }
-    };
-    fetchCiudades();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,14 +35,14 @@ const RegistroCliente = () => {
         nombre: formData.nombre,
         apellido: formData.apellido,
         email: formData.email,
-        telefono: formData.telefono || undefined,
-        ciudad: formData.ciudad || undefined,
+        telefono: formData.telefono,
+        ciudad: formData.ciudad,
         password: formData.password,
         rol: "cliente",
       });
       toast.success("Cuenta creada exitosamente!");
     } catch (error: any) {
-      toast.error(getErrorMessage(error));
+      toast.error(error.message || "Error al crear la cuenta");
     } finally {
       setLoading(false);
     }
@@ -135,42 +111,34 @@ const RegistroCliente = () => {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="telefono">Teléfono</Label>
+                  <Label htmlFor="telefono">Teléfono *</Label>
                   <Input
                     id="telefono"
                     name="telefono"
-                    placeholder="+53 5 234 5678 (opcional)"
+                    placeholder="+53 5 234 5678"
                     value={formData.telefono}
                     onChange={handleChange}
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ciudad">Ciudad</Label>
-                  {loadingCiudades ? (
-                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                      Cargando ciudades...
-                    </div>
-                  ) : ciudades.length === 0 ? (
-                    <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                      No hay ciudades disponibles (opcional)
-                    </div>
-                  ) : (
-                    <select
-                      id="ciudad"
-                      name="ciudad"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      value={formData.ciudad}
-                      onChange={handleChange}
-                    >
-                      <option value="">Selecciona una ciudad (opcional)</option>
-                      {ciudades.map((ciudad) => (
-                        <option key={ciudad.id} value={ciudad.nombre}>
-                          {ciudad.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <Label htmlFor="ciudad">Ciudad *</Label>
+                  <select
+                    id="ciudad"
+                    name="ciudad"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={formData.ciudad}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Selecciona</option>
+                    {ciudadesMock.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.id}>
+                        {ciudad.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

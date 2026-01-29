@@ -36,15 +36,36 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 
   const { nombre, apellido, telefono, ciudad, avatar } = req.body;
 
+  // Validar campos requeridos si se proporcionan
+  if (nombre !== undefined && (!nombre || nombre.trim().length === 0)) {
+    throw new AppError('El nombre no puede estar vacío', 400);
+  }
+
+  if (apellido !== undefined && (!apellido || apellido.trim().length === 0)) {
+    throw new AppError('El apellido no puede estar vacío', 400);
+  }
+
+  // Preparar datos para actualización (solo incluir campos definidos)
+  const updateData: {
+    nombre?: string;
+    apellido?: string;
+    telefono?: string | null;
+    ciudad?: string | null;
+    avatar?: string | null;
+  } = {};
+
+  if (nombre !== undefined) updateData.nombre = nombre.trim();
+  if (apellido !== undefined) updateData.apellido = apellido.trim();
+  if (telefono !== undefined) updateData.telefono = telefono?.trim() || null;
+  if (ciudad !== undefined) updateData.ciudad = ciudad?.trim() || null;
+  // Avatar puede ser null, string vacío (convertir a null), o un valor válido
+  if (avatar !== undefined) {
+    updateData.avatar = avatar && avatar.trim().length > 0 ? avatar.trim() : null;
+  }
+
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: {
-      nombre,
-      apellido,
-      telefono,
-      ciudad,
-      avatar,
-    },
+    data: updateData,
     select: {
       id: true,
       nombre: true,

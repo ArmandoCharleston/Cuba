@@ -37,7 +37,7 @@ model User {
   password  String
   telefono  String?
   ciudad    String?
-  avatar    String?
+  avatar    String?  @db.Text
   rol       UserRole @default(cliente)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

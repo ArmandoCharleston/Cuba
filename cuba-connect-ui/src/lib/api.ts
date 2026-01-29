@@ -1,5 +1,3 @@
-import { getErrorMessage } from './errorHandler';
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 // Helper function to get auth token
@@ -23,61 +21,18 @@ const request = async <T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
 
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        let errorData: any = {};
-        try {
-          errorData = await response.json();
-        } catch {
-          // Si no se puede parsear, crear un objeto de error básico
-          errorData = { status: response.status };
-        }
-        
-        // Usar el errorHandler para obtener un mensaje amigable
-        const error = {
-          response: {
-            status: response.status,
-            data: errorData,
-          },
-          message: errorData.message || errorData.error,
-        };
-        
-        throw new Error(getErrorMessage(error));
-      }
+  const data = await response.json();
 
-    // Try to parse JSON, but handle cases where response might be empty
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:105',message:'API success response',data:{hasData:!!data,dataKeys:data?Object.keys(data):[],endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      return data;
-    } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/83673a87-98f7-4596-9f03-dcd88d1d4c01',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:110',message:'Non-JSON response',data:{contentType,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      // If not JSON, return empty object or handle accordingly
-      return {} as T;
-    }
-  } catch (error) {
-    // Handle network errors
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('No se pudo conectar al servidor. Por favor, verifica tu conexión a internet.');
-    }
-    // Si ya es un Error con mensaje, lanzarlo directamente
-    if (error instanceof Error) {
-      throw error;
-    }
-    // Para otros tipos de errores, usar el errorHandler
-    throw new Error(getErrorMessage(error));
+  if (!response.ok) {
+    throw new Error(data.message || 'An error occurred');
   }
+
+  return data;
 };
 
 export const api = {
@@ -140,16 +95,14 @@ export const api = {
   negocios: {
     getAll: async (params?: {
       categoriaId?: string;
-      provinciaId?: string;
-      municipioId?: string;
+      ciudadId?: string;
       search?: string;
       page?: number;
       limit?: number;
     }) => {
       const queryParams = new URLSearchParams();
       if (params?.categoriaId) queryParams.append('categoriaId', params.categoriaId);
-      if (params?.provinciaId) queryParams.append('provinciaId', params.provinciaId);
-      if (params?.municipioId) queryParams.append('municipioId', params.municipioId);
+      if (params?.ciudadId) queryParams.append('ciudadId', params.ciudadId);
       if (params?.search) queryParams.append('search', params.search);
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -170,9 +123,8 @@ export const api = {
       telefono: string;
       email: string;
       descripcion?: string;
-      categoriaId?: number;
-      provinciaId: number;
-      municipioId: number;
+      categoriaId: number;
+      ciudadId: number;
       foto?: string;
       horarios?: any;
       precioPromedio?: number;
@@ -206,42 +158,12 @@ export const api = {
     getById: async (id: string) => {
       return request<{ success: boolean; data: any }>(`/categorias/${id}`);
     },
-
-    create: async (data: { nombre: string; icono: string; descripcion?: string }) => {
-      return request<{ success: boolean; data: any }>('/categorias', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
   },
 
-  // Ciudades (mantener para compatibilidad)
+  // Ciudades
   ciudades: {
     getAll: async () => {
       return request<{ success: boolean; data: any[] }>('/ciudades');
-    },
-  },
-
-  // Provincias
-  provincias: {
-    getAll: async () => {
-      return request<{ success: boolean; data: any[] }>('/provincias');
-    },
-
-    getById: async (id: string) => {
-      return request<{ success: boolean; data: any }>(`/provincias/${id}`);
-    },
-  },
-
-  // Municipios
-  municipios: {
-    getAll: async (provinciaId?: string) => {
-      const query = provinciaId ? `?provinciaId=${provinciaId}` : '';
-      return request<{ success: boolean; data: any[] }>(`/municipios${query}`);
-    },
-
-    getById: async (id: string) => {
-      return request<{ success: boolean; data: any }>(`/municipios/${id}`);
     },
   },
 
@@ -333,11 +255,8 @@ export const api = {
     },
 
     create: async (data: {
-      clienteId?: string;
-      empresaId?: string;
-      negocioId?: string;
-      adminId?: string;
-      tipo?: 'cliente-empresa' | 'empresa-admin' | 'cliente-admin';
+      empresaId: string;
+      negocioId: string;
     }) => {
       return request<{ success: boolean; data: any }>('/chats', {
         method: 'POST',
@@ -425,31 +344,6 @@ export const api = {
       return request<{ success: boolean; data: any }>(`/admin/usuarios/${userId}/rol`, {
         method: 'PATCH',
         body: JSON.stringify({ rol }),
-      });
-    },
-
-    updateNegocioEstado: async (negocioId: string, estado: 'pendiente' | 'aprobada' | 'rechazada') => {
-      return request<{ success: boolean; data: any; message: string }>(`/admin/negocios/${negocioId}/estado`, {
-        method: 'PATCH',
-        body: JSON.stringify({ estado }),
-      });
-    },
-
-    removeDuplicateAdmins: async () => {
-      return request<{ success: boolean; data: any; message: string }>('/admin/remove-duplicate-admins', {
-        method: 'POST',
-      });
-    },
-
-    deleteUsuario: async (userId: string) => {
-      return request<{ success: boolean; message: string }>(`/admin/usuarios/${userId}`, {
-        method: 'DELETE',
-      });
-    },
-
-    deleteEmpresa: async (empresaId: string) => {
-      return request<{ success: boolean; message: string }>(`/admin/empresas/${empresaId}`, {
-        method: 'DELETE',
       });
     },
   },

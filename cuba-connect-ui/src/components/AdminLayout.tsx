@@ -1,11 +1,9 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, Building2, Tag, FileText, LogOut, ShieldCheck, MessageSquare } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 export const AdminLayout = () => {
   const location = useLocation();
-  const { logout } = useAuth();
 
   const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -20,7 +18,7 @@ export const AdminLayout = () => {
   return (
     <div className="flex min-h-screen bg-muted/30">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-border bg-background">
+      <aside className="w-64 border-r border-border bg-background">
         <div className="p-6">
           <Link to="/" className="flex items-center space-x-2">
             <img src="/logo.png" alt="Reservate Cuba" className="h-8 w-8" />
@@ -32,7 +30,7 @@ export const AdminLayout = () => {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">
+        <nav className="space-y-1 px-3">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -50,15 +48,13 @@ export const AdminLayout = () => {
           })}
         </nav>
 
-        <div className="px-3 pb-6">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={logout}
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Cerrar Sesión
-          </Button>
+        <div className="absolute bottom-6 left-0 right-0 px-3">
+          <Link to="/">
+            <Button variant="ghost" className="w-full justify-start text-destructive">
+              <LogOut className="mr-3 h-5 w-5" />
+              Cerrar Sesión
+            </Button>
+          </Link>
         </div>
       </aside>
 
